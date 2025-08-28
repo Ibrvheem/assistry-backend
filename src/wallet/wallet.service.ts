@@ -229,7 +229,7 @@ export class WalletService {
             console.log(PAYSTACK_SECRET)
             const res = await axios.post(`${PAYSTACK_BASE}/transaction/initialize`, payload, {
             headers: {
-                Authorization: `Bearer sk_test_f854103fa9d4f843a8a70b4810ec3cd62a905905`,
+                Authorization: `Bearer sk_test_9c1a6166689818e08f0347c90cd1844447307b9c`,
                 'Content-Type': 'application/json',
             },
             timeout: 20000,

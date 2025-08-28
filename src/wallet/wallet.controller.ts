@@ -163,7 +163,7 @@ async handlePaystackWebhook(
   @Res() res: Response,
 ) {
   try {
-    const secret = 'sk_test_f854103fa9d4f843a8a70b4810ec3cd62a905905';
+    const secret = 'sk_test_9c1a6166689818e08f0347c90cd1844447307b9c';
     const hash = crypto
       .createHmac('sha512', secret)
       .update(req.body) // already raw buffer
