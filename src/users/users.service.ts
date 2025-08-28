@@ -39,7 +39,6 @@ export class UsersService {
     );
     return user;
   }
-
   async getUsers() {
     return await this.userModel.find();
   }

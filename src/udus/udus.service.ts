@@ -20,7 +20,9 @@ export class UdusService {
   ) {}
 
   create(createUdusDto: CreateUdusDto) {
-    return 'This action adds a new udus';
+    // return 'This action adds a new udus';
+    const newStudent = new this.udusModel(createUdusDto);
+    return newStudent.save();
   }
 
   findAll() {

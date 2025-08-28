@@ -1,7 +1,8 @@
 import { IsPhoneNumber, IsString, Length } from 'class-validator';
 
 export class VerifyOtpDto {
-  @IsPhoneNumber()
+  @IsString()
+  // @IsPhoneNumber()
   phone_no: string;
 
   @IsString()

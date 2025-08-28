@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class UploadService {
   private readonly s3Client = new S3Client({
-    endpoint: this.configService.getOrThrow('R2_ENDPONT'),
+    endpoint: this.configService.getOrThrow('R2_ENDPOINT'),
     region: this.configService.getOrThrow('R2_REGION'),
     credentials: {
       accessKeyId: this.configService.getOrThrow('R2_ACCESS_KEY_ID'),

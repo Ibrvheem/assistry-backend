@@ -10,11 +10,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { Mongoose } from 'mongoose';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from 'src/users/users.module';
+import { WalletModule } from 'src/wallet/wallet.module'; 
 
 @Module({
   imports: [
     ConfigModule,
     UsersModule,
+    
     JwtModule.registerAsync({
       imports: [ConfigModule, UsersModule],
       inject: [ConfigService],
@@ -23,6 +25,7 @@ import { UsersModule } from 'src/users/users.module';
         signOptions: { expiresIn: '0' }, // Setting expiresIn to '0' to never expire
       }),
     }),
+    WalletModule,
   ],
   controllers: [AuthController],
   providers: [

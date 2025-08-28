@@ -1,6 +1,11 @@
-import { IsPhoneNumber } from 'class-validator';
+import { IsPhoneNumber , IsArray, IsNumber, IsOptional, IsString} from 'class-validator';
 
 export class SendOtpDto {
-  @IsPhoneNumber()
+  // @IsPhoneNumber()
+  @IsString()
   phone_no: string;
+
+  @IsString()
+  @IsOptional()
+  email: string;
 }

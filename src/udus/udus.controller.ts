@@ -15,6 +15,7 @@ import { UpdateUdusDto } from './dto/update-udus.dto';
 import { Public } from 'decorators/public.decorator';
 import { UsersService } from 'src/users/users.service';
 import { REGSTATUS } from 'src/users/types';
+import { UDUS } from './udus.schema';
 
 @Controller('udus')
 @Public()
@@ -24,15 +25,27 @@ export class UdusController {
     private readonly userService: UsersService,
   ) {}
 
+  @Post('/create')
+  async createUdus(@Body() student: Partial<UDUS>) {
+    return this.udusService.create(student);
+  }
+  
+
   @Post()
   async create(@Body() { reg_no }: { reg_no: string }) {
     try {
+      console.log(reg_no);
+      console.log('reg');
       const user = await this.userService.findUserByRegNo(reg_no.toLowerCase());
+      console.log(reg_no);
+      console.log(user);
 
       if (user && user.status === REGSTATUS.OTP_VERIFIED) {
         throw new BadRequestException('User Already Exist');
       }
       const student = await this.udusService.findOneByRegNo(reg_no);
+      console.log(reg_no);
+      console.log(student);
       if (!student) {
         throw new NotFoundException(`Student with ${reg_no} does not exist`);
       }

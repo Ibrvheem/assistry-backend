@@ -11,6 +11,7 @@ import { OtpService } from './otp.service';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { Public } from 'decorators/public.decorator';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+
 @Public()
 @Controller('otp')
 export class OtpController {
@@ -18,10 +19,15 @@ export class OtpController {
 
   @Post('/send')
   sendOTP(@Body() payload: SendOtpDto) {
-    return this.otpService.sendOtp(payload.phone_no);
+    const p=this.otpService.sendOtp(payload.phone_no);
+    return p;
   }
+
   @Post('/verify')
   verifyOTP(@Body() payload: VerifyOtpDto) {
-    return this.otpService.verifyOtp(payload);
+    console.log(payload);
+    const p=this.otpService.verifyOtp(payload);
+    console.log(p);
+    return p; 
   }
 }

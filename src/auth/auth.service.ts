@@ -14,12 +14,14 @@ import { sendOTPDTO, verifyOTPDTO } from './dto/send-otp.dto';
 import { REGSTATUS } from 'src/users/types';
 import { UpdateUserDto } from 'src/users/dto/update-auth.dto';
 import { User } from 'src/users/user.schema';
+import { WalletService } from '../wallet/wallet.service'; 
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly userService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly walletService: WalletService,
   ) {}
 
   async register(payload: UpdateUserDto) {
@@ -35,6 +37,12 @@ export class AuthService {
         },
         isUser.id,
       );
+       try {
+      await this.walletService.createWalletForUser(isUser.id);
+        } catch (err) {
+          // don't fail user creation for wallet errors; log and proceed
+          console.error('create wallet failed', err);
+        }
       return SUCCESS;
     } catch (err) {
       throw new NotFoundException(err);

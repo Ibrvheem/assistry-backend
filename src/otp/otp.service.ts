@@ -3,6 +3,17 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { Twilio } from 'twilio';
 import { ConfigService } from '@nestjs/config';
 
+
+function normalizePhone(raw: string | null | undefined): string | undefined {
+  if (!raw) return raw;
+  let phone = raw.trim();
+  phone = phone.replace(/[\s\-()]/g, '');
+  if (phone.startsWith('+')) return phone;
+  if (phone.startsWith('0')) return '+234' + phone.slice(1);
+  if (phone.startsWith('234')) return '+' + phone;
+  if (/^[0-9]{10}$/.test(phone)) return '+234' + phone;
+  return phone;
+}
 @Injectable()
 export class OtpService {
   public constructor(
@@ -19,7 +30,7 @@ export class OtpService {
     let msg = '';
     await this.twilioClient.verify.v2
       .services(serviceSid)
-      .verifications.create({ to: phoneNumber, channel: 'sms' })
+      .verifications.create({ to: normalizePhone(phoneNumber), channel: 'sms' })
       .then((verification) => (msg = verification.status));
     return { msg: msg };
   }
@@ -29,7 +40,7 @@ export class OtpService {
     let msg = '';
     await this.twilioClient.verify.v2
       .services(serviceSid)
-      .verificationChecks.create({ to: data.phone_no, code: data.code })
+      .verificationChecks.create({ to: normalizePhone(data.phone_no), code: data.code })
       .then((verification) => (msg = verification.status));
     return { msg: msg };
   }
