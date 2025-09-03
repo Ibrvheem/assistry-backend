@@ -50,6 +50,7 @@ export class TasksService {
       });
       const tasks = await Promise.all(
         response.map(async (res) => {
+          console.log('Assets length:', res.assets.length);
           const assets =
             res.assets.length > 0
               ? await Promise.all(
@@ -61,10 +62,12 @@ export class TasksService {
                   })),
                 )
               : [];
+          console.log('Assets with URLs:', assets);
 
           return { ...res.toObject(), assets };
         }),
       );
+      console.log('Final tasks with assets:', tasks);
 
       return tasks;
     } catch (err) {

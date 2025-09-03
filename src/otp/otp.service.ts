@@ -46,7 +46,7 @@
 //   }
 // }
 // src/otp/otp.service.ts
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
@@ -144,14 +144,50 @@ export class OtpService {
       pin_id: dto.pin_id,
       pin: dto.code,
     };
-
     try {
-      const url = `${this.baseUrl}/api/sms/otp/verify`;
-      const resp = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 10_000 });
-      return resp.data;
-    } catch (err: any) {
-      const message = err?.response?.data || err?.message || err;
-      throw new InternalServerErrorException(`Failed to verify OTP: ${JSON.stringify(message)}`);
-    }
+  const url = `${this.baseUrl}/api/sms/otp/verify`;
+  const resp = await axios.post(
+    url,
+    payload,
+    { headers: { 'Content-Type': 'application/json' }, timeout: 10_000 }
+  );
+  const data = resp.data;
+
+  if (data?.verified === true) {
+    return { msg: 'OTP verified successfully' };
+  } else {
+    // Let NestJS handle this as 400
+    throw new BadRequestException(
+      `OTP verification failed: ${JSON.stringify(data)}`
+    );
+  }
+} catch (err: any) {
+  // If it's already a known Nest exception, rethrow
+  if (err instanceof BadRequestException) {
+    throw err;
+  }
+
+  // Otherwise, treat it as internal
+  const message = err?.response?.data || err?.message || err;
+  throw new InternalServerErrorException(
+    `Failed to verify OTP: ${JSON.stringify(message)}`
+  );
+}
+
+
+  //   try {
+  //     const url = `${this.baseUrl}/api/sms/otp/verify`;
+  //     const resp = await axios.post(url, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 10_000 });
+  //     const data=resp.data;
+      
+  //   } catch (err: any) {
+  //     const message = err?.response?.data || err?.message || err;
+  //     throw new InternalServerErrorException(`Failed to verify OTP: ${JSON.stringify(message)}`);
+  //   }
+  //   if(data?.verified===true){
+  //       return { msg: 'OTP verified successfully' };
+  //     }else{
+  //       throw new BadRequestException(`OTP verification failed: ${JSON.stringify(data)}`);
+  //     }
   }
 }
