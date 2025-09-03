@@ -81,8 +81,9 @@ export class OtpService {
   }
 
   async sendOtp(phoneNumber: string) {
+    console.log('Original phone number:', phoneNumber);
     const to = normalizeForTermii(phoneNumber);
-    // const to = '2348108394272';
+    console.log('Normalized phone for Termii:', to);
     if (!to) throw new InternalServerErrorException('Invalid phone number');
     console.log('Sending OTP to', to);
 

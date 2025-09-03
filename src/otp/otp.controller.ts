@@ -19,8 +19,9 @@ export class OtpController {
 
 
    @Post('/send')
-  async send(@Body('phone') phone_no: string) {
+  async send(@Body('phone_no') phone_no: string) {
     // returns Termii response that includes pinId
+    console.log('Phone number received:', phone_no);
     return this.otpService.sendOtp(phone_no);
   }
 
