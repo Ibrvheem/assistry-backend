@@ -81,9 +81,9 @@ export class TasksService {
   async forYou(userId: string) {
     try {
       const response = await this.taskModel.find({
-        user_id: { $ne: userId },
+        // user_id: { $ne: userId },
         status: TaskStatus.PENDING,
-      });
+      }).sort({ created_at: -1 });
 
       const tasks = await Promise.all(
         response.map(async (res) => {

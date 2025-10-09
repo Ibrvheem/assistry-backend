@@ -86,6 +86,7 @@ export class OtpService {
     console.log('Normalized phone for Termii:', to);
     if (!to) throw new InternalServerErrorException('Invalid phone number');
     console.log('Sending OTP to', to);
+    
 
     const payload = {
       api_key: this.apiKey,
@@ -112,7 +113,7 @@ export class OtpService {
     // };
 
     try {
-      const url = `${this.baseUrl}/api/sms/otp/send`;
+      const url = `https://api.termii.com/api/sms/otp/send`;
       const resp = await axios.post(url, payload, {
         headers: { 'Content-Type': 'application/json' },
         timeout: 10_000,
