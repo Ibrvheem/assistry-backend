@@ -29,6 +29,7 @@ export const TaskSchema = new mongoose.Schema({
   assets: { type: [AssetSchema] },
   location: { type: String, required: true },
   expires: { type: Number, require: true },
+  views:{ type: Number, default: 0 },
   status: {
     type: String,
     enum: Object.values(TaskStatus),
@@ -45,6 +46,7 @@ export const TaskSchema = new mongoose.Schema({
     ref: 'User',
   },
   declinedBy: { type: [mongoose.Schema.Types.ObjectId], required: false },
+  viewedBy: { type: [mongoose.Schema.Types.ObjectId], default: [] },
   created_at: {
     type: Date,
     default: new Date(),
@@ -59,11 +61,13 @@ export interface Task {
   visual_context: string;
   location: string;
   expires: string;
+  views:string,
   user_id: string;
   created_at: string;
   updated_at: string;
   acceptedBy: string;
   declinedBy: string[];
+  viewedBy: string[];
   assets?: Asset[];
   status: TaskStatus;
 }

@@ -294,7 +294,7 @@ export class TasksService {
     return `This action returns all tasks`;
   }
 
-  async findOne(id: string) {
+  async findOne(id: string,currentUserId: string) {
     try {
       const task = await this.taskModel.findById({
         _id: id,
@@ -317,6 +317,19 @@ export class TasksService {
               }),
             )
           : [];
+
+          const hasViewed = task.viewedBy.some(
+      (viewerId) => viewerId.toString() === currentUserId,
+    );
+
+    // If not viewed before, increment views and save viewer
+    if (!hasViewed) {
+      task.views += 1;
+      task.viewedBy.push(currentUserId);
+      await task.save();
+    }
+    console.log('Views count:', task.views);
+      // add to nimber of views (note: 1 view per user, if user call api call multiple times, it still counts as 1 view)
       return { ...task.toObject(), assets, user };
       return task;
     } catch (err) {
