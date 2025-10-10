@@ -50,6 +50,9 @@ export class UdusService {
         status: REGSTATUS.REG_FOUND,
         created_at: new Date(),
         updated_at: undefined,
+        bio: undefined,
+        department: undefined,
+        level: undefined,
       });
       return newUser;
     }

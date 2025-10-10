@@ -29,6 +29,18 @@ export class CreateUserDto {
   @IsOptional()
   otp: string;
 
+   @IsString()
+  @IsOptional()
+  department: string;
+
+   @IsString()
+  @IsOptional()
+  level: string;
+
+   @IsString()
+  @IsOptional()
+  bio: string;
+
   @IsString()
   status: string;
 
