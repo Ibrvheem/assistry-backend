@@ -26,6 +26,9 @@ export class Transaction {
   @Prop({ type: Number, required: true }) // stored in kobo
   amount_kobo: number;
 
+  @Prop({ type: String, default:'Paystack Transaction' }) // stored in kobo
+  description: string;
+
   // optional unique reference to make operations idempotent
   @Prop({ type: String, required: true, index: true, unique: true })
   reference: string;
