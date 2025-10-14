@@ -6,6 +6,8 @@ export enum TaskStatus {
   ACCEPTED = 'accepted',
   DECLINED = 'declined',
   PENDING = 'pending',
+  ONGOING = 'ongoing',
+  FINISHED='finished',
   COMPLETED = 'completed',
   CANCELED = 'canceled',
 }
@@ -57,7 +59,7 @@ export interface Task {
   id: string;
   task: string;
   description: string;
-  incentive: string;
+  incentive: number;
   visual_context: string;
   location: string;
   expires: string;

@@ -140,6 +140,21 @@ export class WalletService {
    * Create a transaction idempotently using the provided reference.
    * Returns TransactionWithId so callers can rely on _id presence.
    */
+  async reference_generator(prefix: string | null): Promise<string> {
+  // Generate a timestamp-based unique part
+  const timestamp = Date.now().toString(36); // Convert to base36 for compactness
+  
+  // Generate a random string for additional uniqueness
+  const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+  // Combine parts with optional prefix
+  const reference = prefix
+    ? `${prefix.toUpperCase()}-${timestamp}-${randomPart}`
+    : `${timestamp}-${randomPart}`;
+
+  return reference;
+}
+
   async createTransaction(userId: string | Types.ObjectId, dto: CreateTransactionDto): Promise<TransactionWithId> {
     const wallet = await this.getOrCreateWallet(userId);
 
@@ -320,7 +335,7 @@ export class WalletService {
     return this.createTransaction(userId, dto);
   }
 
-  async debitByReference(userId: string | Types.ObjectId, amount_kobo: number, reference: string, metadata?: Record<string, any>): Promise<TransactionWithId> {
+  async debitByReference(userId: string | Types.ObjectId, amount_kobo: number, reference: string,metadata?: Record<string, any>): Promise<TransactionWithId> {
     const dto: CreateTransactionDto = { type: TransactionType.DEBIT, amount_kobo, reference, metadata };
     return this.createTransaction(userId, dto);
   }

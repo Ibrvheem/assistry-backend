@@ -12,7 +12,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { User } from 'decorators/user.decorator';
 import { UsersService } from 'src/users/users.service';
-import { AcceptOrDeclineTaskDto } from './dto/accept-or-decline-task.dto';
+import { AcceptOrDeclineTaskDto, TaskIDDto } from './dto/accept-or-decline-task.dto';
 import { UserBindingContextImpl } from 'twilio/lib/rest/ipMessaging/v2/service/user/userBinding';
 
 @Controller('tasks')
@@ -55,6 +55,28 @@ export class TasksController {
     return this.tasksService.declineTask(
       user.userId,
       acceptOrDeclineTaskDto.taskId,
+    );
+  }
+
+  @Post('finished')
+  CompleteTask(
+    @User() user,
+    @Body() TaskDto: TaskIDDto,
+  ) {
+    return this.tasksService.declineTask(
+      user.userId,
+      TaskDto.taskId,
+    );
+  }
+
+  @Post('acknowledged')
+  ApproveTask(
+    @User() user,
+   @Body() TaskDto: TaskIDDto,
+  ) {
+    return this.tasksService.declineTask(
+      user.userId,
+      TaskDto.taskId,
     );
   }
 

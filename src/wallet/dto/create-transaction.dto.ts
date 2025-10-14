@@ -16,6 +16,9 @@ export class CreateTransactionDto {
   @IsNotEmpty()
   reference: string;
 
+  // @IsOptional()
+  // description: string;
+
   @IsOptional()
   metadata?: Record<string, any>;
 }

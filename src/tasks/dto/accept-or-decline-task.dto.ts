@@ -4,3 +4,9 @@ export class AcceptOrDeclineTaskDto {
   @IsString()
   taskId: string;
 }
+
+
+export class TaskIDDto {
+  @IsString()
+  taskId: string;
+}
