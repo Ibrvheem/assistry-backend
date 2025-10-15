@@ -51,7 +51,7 @@ export class TasksService {
     try {
       const response = await this.taskModel.find({
         user_id: userId,
-      })
+      }).sort({ created_at: -1 })
       const tasks = await Promise.all(
         response.map(async res => {
           console.log('Assets length:', res.assets.length)
@@ -126,6 +126,20 @@ export class TasksService {
         user_id: { $ne: userId },
         status: TaskStatus.PENDING,
       })
+
+      return response
+    } catch (err) {
+      console.error('There was an error fetching active tasks', err)
+    }
+  }
+
+  async getongoingTask(userId: string) {
+    try {
+      const response = await this.taskModel.findOne({
+  $or: [{ acceptedBy: userId }, { user_id: userId }],
+  status: { $in: [TaskStatus.ONGOING, TaskStatus.FINISHED] },
+});
+
 
       return response
     } catch (err) {
@@ -427,9 +441,77 @@ export class TasksService {
     }
   }
 
-  update (id: number, updateTaskDto: UpdateTaskDto) {
-    return `This action updates a #${id} task`
+  // async update (id: number, userId:string, updateTaskDto: UpdateTaskDto) {
+  //   console.log('Update DTO:',updateTaskDto)
+  //   const task = await this.taskModel.findOne({
+  //       _id: id, user_id:userId
+  //     })
+  //     if (!task) {
+  //       throw new NotFoundException(`Get One: Task with ${id} not found `)
+  //     }
+  //   return SUCCESS;
+  // }
+
+  async update(id: string, userId: string, updateTaskDto: UpdateTaskDto) {
+
+
+  // make sure the task exists and belongs to this user
+  const existing = await this.taskModel.findOne({ _id: id, user_id: userId });
+  if (!existing) {
+    throw new NotFoundException(`Task with id ${id} not found or you don't have permission to edit it`);
   }
+
+  // prepare payload: shallow copy so we don't mutate DTO unexpectedly
+  const payload: any = { ...updateTaskDto };
+
+  // If incentive provided, convert to kobo (guard for string/number)
+  if (payload.incentive !== undefined && payload.incentive !== null && payload.incentive !== '') {
+    // If incentive could be a string in DTO, coerce to number first
+    const incentiveNum = Number(payload.incentive);
+    if (Number.isNaN(incentiveNum)) {
+      throw new BadRequestException('Invalid incentive value');
+    }
+    payload.incentive = convertToKobo(incentiveNum);
+  }
+
+  // If expires is provided and should be a Number, coerce/validate
+  if (payload.expires !== undefined && payload.expires !== null && payload.expires !== '') {
+    const expiresNum = Number(payload.expires);
+    if (Number.isNaN(expiresNum)) {
+      // optionally accept a Date string -> convert to timestamp
+      // throw or convert depending on your domain rules
+      throw new BadRequestException('Invalid expires value');
+    }
+    payload.expires = expiresNum;
+  }
+
+  // remove undefined keys (optional but cleaner)
+  Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+
+  try {
+    const updated = await this.taskModel.findOneAndUpdate(
+      { _id: id, user_id: userId }, // ownership check
+      { $set: payload },
+      { new: true } // return updated document
+    );
+
+    if (!updated) {
+      // race condition: wasn't found for update
+      throw new NotFoundException(`Task with id ${id} not found or you don't have permission to edit it`);
+    }
+
+    console.log(`Task ${id} updated successfully`);
+
+    // return whatever your API expects — you returned SUCCESS in create, keep consistent
+    return SUCCESS;
+    
+    // or return updated if you prefer:
+    // return updated;
+  } catch (err) {
+    console.error(`There was an error updating task ${id}:`, err);
+    throw new InternalServerErrorException('Failed to update task');
+  }
+}
 
   remove (id: number) {
     return `This action removes a #${id} task`

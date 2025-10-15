@@ -9,6 +9,7 @@ export enum TaskStatus {
   ONGOING = 'ongoing',
   FINISHED='finished',
   COMPLETED = 'completed',
+  EXPIRED = "expired",
   CANCELED = 'canceled',
 }
 const AssetSchema = new Schema({

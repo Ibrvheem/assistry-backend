@@ -96,6 +96,13 @@ export class TasksController {
 
     return tasks;
   }
+
+  @Get('ongoing')
+  async ongoing(@User() user) {
+    const tasks = await this.tasksService.getongoingTask(user.userId);
+
+    return tasks;
+  }
   @Get('to-do')
   async findYourTodo(@User() user) {
     const tasks = await this.tasksService.getYourTodo(user.userId);
@@ -118,8 +125,8 @@ export class TasksController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto) {
-    return this.tasksService.update(+id, updateTaskDto);
+  update(@Param('id') id: string, @Body() updateTaskDto: UpdateTaskDto,@User() user) {
+    return this.tasksService.update(id, user.userId, updateTaskDto);
   }
 
   @Delete(':id')
