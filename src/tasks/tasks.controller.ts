@@ -69,12 +69,12 @@ export class TasksController {
     );
   }
 
-  @Post('finished')
+  @Post('complete')
   CompleteTask(
     @User() user,
     @Body() TaskDto: TaskIDDto,
   ) {
-    return this.tasksService.declineTask(
+    return this.tasksService.completeTask(
       user.userId,
       TaskDto.taskId,
     );
@@ -85,7 +85,7 @@ export class TasksController {
     @User() user,
    @Body() TaskDto: TaskIDDto,
   ) {
-    return this.tasksService.declineTask(
+    return this.tasksService.acknowledgeTask(
       user.userId,
       TaskDto.taskId,
     );
