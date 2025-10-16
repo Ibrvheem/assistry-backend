@@ -76,6 +76,21 @@ export class AuthService {
       },
     };
   }
+
+  async run() {
+    // const user= this.userService.findUserByEmail('Jamils@gmail.com');
+    const user = await this.userService.getUserByRegNo('1711402030');
+    const hashedPassword = await bcrypt.hash('1234', 10);
+      await this.userService.updateUser(
+        {
+          password: hashedPassword,
+        },
+        user.id,
+      );
+    return user;
+
+    
+  }
   async sendOTP(payload: sendOTPDTO) {
     const otp = Math.floor(100000 + Math.random() * 900000);
 

@@ -58,6 +58,17 @@ export class TasksController {
     );
   }
 
+  @Post('start')
+  startTask(
+    @User() user,
+    @Body() acceptOrDeclineTaskDto: AcceptOrDeclineTaskDto,
+  ) {
+    return this.tasksService.startTask(
+      user.userId,
+      acceptOrDeclineTaskDto.taskId,
+    );
+  }
+
   @Post('finished')
   CompleteTask(
     @User() user,

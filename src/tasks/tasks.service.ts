@@ -51,7 +51,7 @@ export class TasksService {
     try {
       const response = await this.taskModel.find({
         user_id: userId,
-      }).sort({ created_at: -1 })
+      }).sort({ updated_at: -1 })
       const tasks = await Promise.all(
         response.map(async res => {
           console.log('Assets length:', res.assets.length)
@@ -152,7 +152,7 @@ export class TasksService {
       const response = await this.taskModel.find({
         acceptedBy: userId,
         status: TaskStatus.ACCEPTED,
-      })
+      }).sort({ created_at: -1 })
 
       const tasks = await Promise.all(
         response.map(async res => {
@@ -285,9 +285,10 @@ export class TasksService {
   async declineTask (userId: string, id: string) {
     try {
       const task = await this.taskModel.findOne({
-        user_id: { $ne: userId },
+        // user_id: { $ne: userId },
+        $or: [{ acceptedBy: userId }, { user_id: userId }],
         status: TaskStatus.ACCEPTED,
-        acceptedBy: userId,
+        // acceptedBy: userId,
       })
       if (!task) {
         throw new NotFoundException(
@@ -306,6 +307,33 @@ export class TasksService {
       return SUCCESS
     } catch (err) {
       console.error(`Error while accepting task`, err)
+      throw err
+    }
+  }
+
+  async startTask (userId: string, id: string) {
+    try {
+      const task = await this.taskModel.findOne({
+        user_id: { $ne: userId },
+        status: TaskStatus.ACCEPTED,
+        acceptedBy: userId,
+      })
+      if (!task) {
+        throw new NotFoundException(
+          `Decline Task: Task with id: ${id} not found among your accepted tasks.`,
+        )
+      }
+      await this.taskModel.updateOne(
+        {
+          _id: id,
+        },
+        {
+          status: TaskStatus.ONGOING,
+        },
+      )
+      return SUCCESS
+    } catch (err) {
+      console.error(`Error while STARTING task`, err)
       throw err
     }
   }
