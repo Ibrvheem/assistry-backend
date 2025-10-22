@@ -14,6 +14,7 @@ import { User } from 'decorators/user.decorator';
 import { UsersService } from 'src/users/users.service';
 import { AcceptOrDeclineTaskDto, TaskIDDto } from './dto/accept-or-decline-task.dto';
 import { UserBindingContextImpl } from 'twilio/lib/rest/ipMessaging/v2/service/user/userBinding';
+import { Public } from 'decorators/public.decorator';
 
 @Controller('tasks')
 export class TasksController {
@@ -25,6 +26,12 @@ export class TasksController {
   @Post()
   create(@User() user, @Body() createTaskDto: CreateTaskDto) {
     return this.tasksService.create(user.userId, createTaskDto);
+  }
+
+  @Public()
+  @Get()
+  all() {
+    return this.tasksService.findAll();
   }
 
   @Post('cancel')

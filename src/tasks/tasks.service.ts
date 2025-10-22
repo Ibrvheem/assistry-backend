@@ -447,8 +447,41 @@ const tasks = await Promise.all(
     }
   }
 
-  findAll () {
-    return `This action returns all tasks`
+  async findAll () {
+    const task = await this.taskModel.find().sort({ created_at: -1 })
+
+    return task
+  }
+
+  async findOne101 (id: string) {
+    try {
+      const task = await this.taskModel.findById({
+        _id: id,
+      })
+      if (!task) {
+        throw new NotFoundException(`Get One: Task with ${id} not found `)
+      }
+
+      const user = await this.usersService.findUserByID(task.user_id)
+      const assets =
+        task.assets.length > 0
+          ? await Promise.all(
+              task.assets.map(async asset => {
+                return {
+                  ...asset.toObject(),
+                  url: await this.uploadService.getFileUrl(
+                    asset.assetStorageKey,
+                  ),
+                }
+              }),
+            )
+          : []
+
+      // add to nimber of views (note: 1 view per user, if user call api call multiple times, it still counts as 1 view)
+      return { ...task.toObject(), assets, user }
+    } catch (err) {
+      throw new InternalServerErrorException(err)
+    }
   }
 
   async findOne (id: string, currentUserId: string) {

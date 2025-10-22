@@ -18,6 +18,17 @@ export class UsersService {
     return user;
   }
 
+  async findUsersByIds(ids: string[]) {
+  return this.userModel
+    .find({ _id: { $in: ids } })
+    .select('_id first_name last_name profile_picture email') 
+    .select('-password')
+    .select('-otp')// select only what you need
+    .lean()
+    .exec();
+}
+
+
   async findUserByEmail(email: string) {
     return await this.userModel.findOne({ email }).exec();
   }

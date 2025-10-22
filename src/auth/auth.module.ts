@@ -35,5 +35,6 @@ import { WalletModule } from 'src/wallet/wallet.module';
     LocalStrategy,
     JwtStrategy,
   ],
+   exports: [JwtModule, AuthService],
 })
 export class AuthModule {}

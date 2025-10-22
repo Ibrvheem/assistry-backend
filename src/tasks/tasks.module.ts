@@ -10,6 +10,7 @@ import { WalletModule } from 'src/wallet/wallet.module';
 @Module({
   controllers: [TasksController],
   providers: [TasksService, UsersModule],
+  exports: [TasksService],
   imports: [
     MongooseModule.forFeature([{ name: 'Tasks', schema: TaskSchema }]),
     UsersModule,

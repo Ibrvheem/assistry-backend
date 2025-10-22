@@ -62,7 +62,7 @@ export class AuthService {
     return user;
   }
   async login(user: User) {
-    const payload = { reg_no: user.reg_no, userId: user.id };
+    const payload = { reg_no: user.reg_no, userId: user.id, first_name:user.first_name };
 
     return {
       access_token: this.jwtService.sign(payload),
@@ -72,10 +72,11 @@ export class AuthService {
         profile_picture: user.profile_picture,
         phone_no: user.phone_no,
         email: user.email,
-        id: user.id,
+        _id: user.id,
       },
     };
   }
+  
 
   async run() {
     // const user= this.userService.findUserByEmail('Jamils@gmail.com');
