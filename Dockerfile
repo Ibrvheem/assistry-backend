@@ -20,8 +20,8 @@ RUN npx prisma generate
 # Build the application
 RUN npm run build
 
-# Step 2: Serve the Next.js app using a Node.js server
-FROM node:latest
+# Step 2: Serve the app using Node 24
+FROM node:24.7.0
 
 # Set the working directory in the container
 WORKDIR /app
