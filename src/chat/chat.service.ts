@@ -45,7 +45,7 @@
 // }
 
 // chat/chat.service.ts
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException ,InternalServerErrorException} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ChatRoom } from './schemas/chat-room.schema';
@@ -112,6 +112,160 @@ export class ChatService {
 
     return created.toObject() as Lean<ChatRoom>;
   }
+
+
+//   async findOrCreateRoom(
+//   creatorId: string,
+//   dto: CreateRoomDto,
+// ): Promise<
+//   Lean<
+//     ChatRoom & {
+//       users: Array<{ _id: string; first_name: string; last_name: string; profile_picture?: string }>;
+//       task?: any;
+//       lastMessage?: {
+//         _id: string;
+//         text?: string;
+//         type: string;
+//         sender: string;
+//         createdAt: Date;
+//       };
+//       unreadCount: number;
+//     }
+//   >
+// > {
+//   // participants set: creator + provided participants
+//   const participantsSet = new Set<string>([creatorId, ...(dto.participants || [])]);
+
+//   if (participantsSet.size < 2) {
+//     throw new BadRequestException('At least two distinct participants required');
+//   }
+
+//   const participants = Array.from(participantsSet).sort(); // consistent order
+//   const participantsKey = participants.join('_');
+
+//   // 🟦 1️⃣ Try to find existing room
+//   let room = await this.roomModel
+//     .findOne({ taskId: dto.taskId, participantsKey })
+//     .lean<Lean<ChatRoom>>();
+
+//   // 🟦 2️⃣ If not found, create it
+//   if (!room) {
+//     const task = await this.taskService.findOne101(dto.taskId);
+//     if (!task) throw new NotFoundException('Task not found');
+
+//     const created = await this.roomModel.create({
+//       name: task.task.slice(0, 20),
+//       taskId: dto.taskId,
+//       participants,
+//       participantsKey,
+//       task_picture: task.assets.length > 0 ? task.assets[0].url : null,
+//     });
+
+//     room = created.toObject();
+//   }
+
+//   // 🟦 3️⃣ Return enriched (aggregated) room data
+//   const [enrichedRoom] = await this.roomModel
+//     .aggregate([
+//       { $match: { _id: new Types.ObjectId(room.id) } },
+
+//       // Users
+//       {
+//         $lookup: {
+//           from: 'users',
+//           localField: 'participants',
+//           foreignField: '_id',
+//           as: 'users',
+//           pipeline: [
+//             { $project: { _id: 1, first_name: 1, last_name: 1, profile_picture: 1 } },
+//           ],
+//         },
+//       },
+
+//       // Task
+//       {
+//         $lookup: {
+//           from: 'tasks',
+//           localField: 'taskId',
+//           foreignField: '_id',
+//           as: 'task',
+//           pipeline: [
+//             {
+//               $project: {
+//                 _id: 1,
+//                 task: 1,
+//                 location: 1,
+//                 incentive: 1,
+//                 status: 1,
+//                 created_at: 1,
+//               },
+//             },
+//           ],
+//         },
+//       },
+//       { $unwind: { path: '$task', preserveNullAndEmptyArrays: true } },
+
+//       // Last message
+//       {
+//         $lookup: {
+//           from: 'messages',
+//           let: { roomId: '$_id' },
+//           pipeline: [
+//             { $match: { $expr: { $eq: ['$roomId', '$$roomId'] } } },
+//             { $sort: { createdAt: -1 } },
+//             { $limit: 1 },
+//             {
+//               $project: {
+//                 _id: 1,
+//                 text: 1,
+//                 type: 1,
+//                 sender: 1,
+//                 createdAt: 1,
+//               },
+//             },
+//           ],
+//           as: 'lastMessage',
+//         },
+//       },
+//       { $unwind: { path: '$lastMessage', preserveNullAndEmptyArrays: true } },
+
+//       // Unread count
+//       {
+//         $addFields: {
+//           unreadCount: {
+//             $ifNull: [
+//               { $toInt: { $getField: { field: creatorId, input: '$unreadCounts' } } },
+//               0,
+//             ],
+//           },
+//         },
+//       },
+
+//       // Final projection
+//       {
+//         $project: {
+//           _id: 1,
+//           taskId: 1,
+//           participants: 1,
+//           lastMessageAt: 1,
+//           task_picture: 1,
+//           name: 1,
+//           users: 1,
+//           task: 1,
+//           lastMessage: 1,
+//           unreadCount: 1,
+//         },
+//       },
+//     ])
+//     .allowDiskUse(true)
+//     .exec();
+
+//   if (!enrichedRoom) {
+//     throw new InternalServerErrorException('Failed to retrieve room after creation');
+//   }
+
+//   return enrichedRoom;
+// }
 
   /**
    * Retrieve chat rooms for a given user.
@@ -765,125 +919,6 @@ async getMessages(
   return messages.reverse();
 }
 
-
-// async getMessages(
-//   roomId: string,
-//   limit = 50,
-//   before?: string,
-// ): Promise<{
-//   messages: Array<
-//     Lean<Message> & {
-//       senderUser?: { _id: string; first_name: string; last_name: string; profile_picture?: string };
-//       replyToMessage?: {
-//         _id: string;
-//         text?: string;
-//         type: string;
-//         senderUser?: { _id: string; first_name: string; last_name: string; profile_picture?: string };
-//       };
-//     }
-//   >;
-//   nextCursor?: string;
-// }> {
-//   const query: any = {
-//     roomId: new Types.ObjectId(roomId),
-//   };
-
-//   if (before) query._id = { $lt: new Types.ObjectId(before) };
-
-//   const messages = await this.messageModel
-//     .aggregate([
-//       // 1️⃣ Filter by room
-//       { $match: query },
-
-//       // 2️⃣ Sort newest → oldest
-//       { $sort: { _id: -1 } },
-
-//       // 3️⃣ Limit pagination
-//       { $limit: limit },
-
-//       // 4️⃣ Join sender user (lean projection)
-//       {
-//         $lookup: {
-//           from: 'users',
-//           localField: 'sender',
-//           foreignField: '_id',
-//           as: 'senderUser',
-//           pipeline: [
-//             { $project: { _id: 1, first_name: 1, last_name: 1, profile_picture: 1 } },
-//           ],
-//         },
-//       },
-//       { $unwind: '$senderUser' },
-
-//       // 5️⃣ Lookup replyTo message (only if exists)
-//       {
-//         $lookup: {
-//           from: 'messages',
-//           localField: 'replyTo',
-//           foreignField: '_id',
-//           as: 'replyToMessage',
-//           pipeline: [
-//             {
-//               $project: {
-//                 _id: 1,
-//                 text: 1,
-//                 type: 1,
-//                 sender: 1,
-//               },
-//             },
-//             {
-//               $lookup: {
-//                 from: 'users',
-//                 localField: 'sender',
-//                 foreignField: '_id',
-//                 as: 'senderUser',
-//                 pipeline: [
-//                   {
-//                     $project: {
-//                       _id: 1,
-//                       first_name: 1,
-//                       last_name: 1,
-//                       profile_picture: 1,
-//                     },
-//                   },
-//                 ],
-//               },
-//             },
-//             { $unwind: { path: '$senderUser', preserveNullAndEmptyArrays: true } },
-//           ],
-//         },
-//       },
-//       { $unwind: { path: '$replyToMessage', preserveNullAndEmptyArrays: true } },
-
-//       // 6️⃣ Final lean projection
-//       {
-//         $project: {
-//           _id: 1,
-//           roomId: 1,
-//           sender: 1,
-//           type: 1,
-//           text: 1,
-//           attachments: 1,
-//           createdAt: 1,
-//           readBy: 1,
-//           senderUser: 1,
-//           replyToMessage: 1,
-//         },
-//       },
-//     ])
-//     .allowDiskUse(true)
-//     .exec();
-
-//   // Reverse to ascending (oldest → newest) for chat scroll view
-//   const sortedMessages = messages.reverse(); // oldest → newest
-
-//   const nextCursor = sortedMessages.length
-//     ? sortedMessages[sortedMessages.length - 1]._id.toString()
-//     : undefined;
-
-//   return { messages: sortedMessages, nextCursor };
-//   // return messages.reverse();
-// }
 
 
   /**
