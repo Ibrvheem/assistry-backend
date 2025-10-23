@@ -72,200 +72,205 @@ export class ChatService {
   /**
    * Find an existing room between participants for a given task, or create a new one.
    */
-  async findOrCreateRoom(
-    creatorId: string,
-    dto: CreateRoomDto,
-  ): Promise<Lean<ChatRoom>> {
-    // participants set: creator + provided participants
-    const participantsSet = new Set<string>([creatorId, ...(dto.participants || [])]);
-    // const participantsSet = new Set<string>([...(dto.participants || [])]);
-    if (participantsSet.size < 2) {
-      throw new BadRequestException('At least two distinct participants required');
-    }
-
-    const participants = Array.from(participantsSet).sort(); // consistent order
-    const participantsKey = participants.join('_');
-
-    // try to find existing room
-    const existing = await this.roomModel
-      .findOne({ taskId: dto.taskId, participantsKey })
-      .lean<Lean<ChatRoom>>();
-    if (existing) return existing;
-//     if (existing) {
-//   await this.roomModel.deleteOne({ _id: existing._id });
-// }
-
-    const task= await this.taskService.findOne101(dto.taskId);
-    if(!task) {
-      throw new NotFoundException('Task not found');
-    };
-
-
-    // otherwise, create a new room
-    const created = await this.roomModel.create({
-      name: task.task.slice(0, 20), 
-      taskId: dto.taskId,
-      participants,
-      participantsKey,
-      task_picture: task.assets.length > 0 ? task.assets[0].url : null,
-    });
-
-    return created.toObject() as Lean<ChatRoom>;
-  }
-
-
 //   async findOrCreateRoom(
-//   creatorId: string,
-//   dto: CreateRoomDto,
-// ): Promise<
-//   Lean<
-//     ChatRoom & {
-//       users: Array<{ _id: string; first_name: string; last_name: string; profile_picture?: string }>;
-//       task?: any;
-//       lastMessage?: {
-//         _id: string;
-//         text?: string;
-//         type: string;
-//         sender: string;
-//         createdAt: Date;
-//       };
-//       unreadCount: number;
+//     creatorId: string,
+//     dto: CreateRoomDto,
+//   ): Promise<Lean<ChatRoom>> {
+//     // participants set: creator + provided participants
+//     const participantsSet = new Set<string>([creatorId, ...(dto.participants || [])]);
+//     // const participantsSet = new Set<string>([...(dto.participants || [])]);
+//     if (participantsSet.size < 2) {
+//       throw new BadRequestException('At least two distinct participants required');
 //     }
-//   >
-// > {
-//   // participants set: creator + provided participants
-//   const participantsSet = new Set<string>([creatorId, ...(dto.participants || [])]);
 
-//   if (participantsSet.size < 2) {
-//     throw new BadRequestException('At least two distinct participants required');
-//   }
+//     const participants = Array.from(participantsSet).sort(); // consistent order
+//     const participantsKey = participants.join('_');
 
-//   const participants = Array.from(participantsSet).sort(); // consistent order
-//   const participantsKey = participants.join('_');
+//     // try to find existing room
+//     const existing = await this.roomModel
+//       .findOne({ taskId: dto.taskId, participantsKey })
+//       .lean<Lean<ChatRoom>>();
+//     if (existing) return existing;
+// //     if (existing) {
+// //   await this.roomModel.deleteOne({ _id: existing._id });
+// // }
 
-//   // 🟦 1️⃣ Try to find existing room
-//   let room = await this.roomModel
-//     .findOne({ taskId: dto.taskId, participantsKey })
-//     .lean<Lean<ChatRoom>>();
+//     const task= await this.taskService.findOne101(dto.taskId);
+//     if(!task) {
+//       throw new NotFoundException('Task not found');
+//     };
 
-//   // 🟦 2️⃣ If not found, create it
-//   if (!room) {
-//     const task = await this.taskService.findOne101(dto.taskId);
-//     if (!task) throw new NotFoundException('Task not found');
 
+//     // otherwise, create a new room
 //     const created = await this.roomModel.create({
-//       name: task.task.slice(0, 20),
+//       name: task.task.slice(0, 20), 
 //       taskId: dto.taskId,
 //       participants,
 //       participantsKey,
 //       task_picture: task.assets.length > 0 ? task.assets[0].url : null,
 //     });
 
-//     room = created.toObject();
+//     return created.toObject() as Lean<ChatRoom>;
 //   }
 
-//   // 🟦 3️⃣ Return enriched (aggregated) room data
-//   const [enrichedRoom] = await this.roomModel
-//     .aggregate([
-//       { $match: { _id: new Types.ObjectId(room.id) } },
 
-//       // Users
-//       {
-//         $lookup: {
-//           from: 'users',
-//           localField: 'participants',
-//           foreignField: '_id',
-//           as: 'users',
-//           pipeline: [
-//             { $project: { _id: 1, first_name: 1, last_name: 1, profile_picture: 1 } },
-//           ],
-//         },
-//       },
+async findOrCreateRoom(
+  creatorId: string,
+  dto: CreateRoomDto,
+): Promise<
+  Pick<
+    ChatRoom,
+    'taskId' | 'participants' | 'lastMessageAt' | 'task_picture' | 'name'
+  > & {
+    users: Array<{ _id: string; first_name: string; last_name: string; profile_picture?: string }>;
+    task?: any;
+    lastMessage?: {
+      _id: string;
+      text?: string;
+      type: string;
+      sender: string;
+      createdAt: Date;
+    };
+    unreadCount: number;
+  }
+> {
+  const participantsSet = new Set<string>([creatorId, ...(dto.participants || [])]);
+  if (participantsSet.size < 2) {
+    throw new BadRequestException('At least two distinct participants required');
+  }
 
-//       // Task
-//       {
-//         $lookup: {
-//           from: 'tasks',
-//           localField: 'taskId',
-//           foreignField: '_id',
-//           as: 'task',
-//           pipeline: [
-//             {
-//               $project: {
-//                 _id: 1,
-//                 task: 1,
-//                 location: 1,
-//                 incentive: 1,
-//                 status: 1,
-//                 created_at: 1,
-//               },
-//             },
-//           ],
-//         },
-//       },
-//       { $unwind: { path: '$task', preserveNullAndEmptyArrays: true } },
+  const participants = Array.from(participantsSet).sort();
+  const participantsKey = participants.join('_');
 
-//       // Last message
-//       {
-//         $lookup: {
-//           from: 'messages',
-//           let: { roomId: '$_id' },
-//           pipeline: [
-//             { $match: { $expr: { $eq: ['$roomId', '$$roomId'] } } },
-//             { $sort: { createdAt: -1 } },
-//             { $limit: 1 },
-//             {
-//               $project: {
-//                 _id: 1,
-//                 text: 1,
-//                 type: 1,
-//                 sender: 1,
-//                 createdAt: 1,
-//               },
-//             },
-//           ],
-//           as: 'lastMessage',
-//         },
-//       },
-//       { $unwind: { path: '$lastMessage', preserveNullAndEmptyArrays: true } },
+  // Check for existing room
+  let room = await this.roomModel
+    .findOne({ taskId: dto.taskId, participantsKey })
+    .lean<Lean<ChatRoom>>();
 
-//       // Unread count
-//       {
-//         $addFields: {
-//           unreadCount: {
-//             $ifNull: [
-//               { $toInt: { $getField: { field: creatorId, input: '$unreadCounts' } } },
-//               0,
-//             ],
-//           },
-//         },
-//       },
+  // Create if not exists
+  if (!room) {
+    const task = await this.taskService.findOne101(dto.taskId);
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
 
-//       // Final projection
-//       {
-//         $project: {
-//           _id: 1,
-//           taskId: 1,
-//           participants: 1,
-//           lastMessageAt: 1,
-//           task_picture: 1,
-//           name: 1,
-//           users: 1,
-//           task: 1,
-//           lastMessage: 1,
-//           unreadCount: 1,
-//         },
-//       },
-//     ])
-//     .allowDiskUse(true)
-//     .exec();
+    const created = await this.roomModel.create({
+      name: task.task.slice(0, 20),
+      taskId: dto.taskId,
+      participants,
+      participantsKey,
+      task_picture: task.assets.length > 0 ? task.assets[0].url : null,
+    });
 
-//   if (!enrichedRoom) {
-//     throw new InternalServerErrorException('Failed to retrieve room after creation');
-//   }
+    room = created.toObject() as Lean<ChatRoom>;
+  }
 
-//   return enrichedRoom;
-// }
+  const roomId =
+  room._id instanceof Types.ObjectId
+    ? room._id
+    : new Types.ObjectId(room._id.toString());
+  // ✅ Now enrich it just like `getRoomsForUser`
+  const [enriched] = await this.roomModel
+    .aggregate([
+      { $match: { _id: roomId } },
+
+      // Users
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'participants',
+          foreignField: '_id',
+          as: 'users',
+          pipeline: [
+            { $project: { _id: 1, first_name: 1, last_name: 1, profile_picture: 1 } },
+          ],
+        },
+      },
+
+      // Task
+      {
+        $lookup: {
+          from: 'tasks',
+          localField: 'taskId',
+          foreignField: '_id',
+          as: 'task',
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                task: 1,
+                location: 1,
+                incentive: 1,
+                status: 1,
+                created_at: 1,
+              },
+            },
+          ],
+        },
+      },
+      { $unwind: { path: '$task', preserveNullAndEmptyArrays: true } },
+
+      // Last message
+      {
+        $lookup: {
+          from: 'messages',
+          let: { roomId: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$roomId', '$$roomId'] } } },
+            { $sort: { createdAt: -1 } },
+            { $limit: 1 },
+            {
+              $project: {
+                _id: 1,
+                text: 1,
+                type: 1,
+                sender: 1,
+                createdAt: 1,
+              },
+            },
+          ],
+          as: 'lastMessage',
+        },
+      },
+      { $unwind: { path: '$lastMessage', preserveNullAndEmptyArrays: true } },
+
+      // Unread Count
+      {
+        $addFields: {
+          unreadCount: {
+            $ifNull: [
+              {
+                $toInt: {
+                  $getField: { field: creatorId, input: '$unreadCounts' },
+                },
+              },
+              0,
+            ],
+          },
+        },
+      },
+
+      // Final shape
+      {
+        $project: {
+          _id: 1,
+          taskId: 1,
+          participants: 1,
+          lastMessageAt: 1,
+          task_picture: 1,
+          name: 1,
+          users: 1,
+          task: 1,
+          lastMessage: 1,
+          unreadCount: 1,
+        },
+      },
+    ])
+    .allowDiskUse(true)
+    .exec();
+
+  return enriched;
+}
 
   /**
    * Retrieve chat rooms for a given user.

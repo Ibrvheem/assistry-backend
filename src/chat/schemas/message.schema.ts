@@ -61,6 +61,8 @@ export enum MessageType {
   TEXT = 'text',
   IMAGE = 'image',
   VOICE = 'voice',
+  FILE='file',
+
   // extendable (video, file, etc.)
 }
 
