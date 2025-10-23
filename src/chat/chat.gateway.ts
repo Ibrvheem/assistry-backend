@@ -154,7 +154,9 @@ export class ChatGateway
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
+    console.log('Message comng in ', payload)
     const message = await this.chatService.createMessage(user.userId, payload);
+    console.log('Message Processed', message)
 
     const out = {
       _id: message._id,
@@ -169,6 +171,7 @@ export class ChatGateway
     };
 
     client.to(payload.roomId).emit('message', out);
+    
     client.emit('message', out);
 
     await this.redisPub.publish(this.CHANNEL, JSON.stringify(out));

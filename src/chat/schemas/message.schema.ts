@@ -64,6 +64,13 @@ export enum MessageType {
   // extendable (video, file, etc.)
 }
 
+export enum MessageStatus {
+  SENT = 'sent',
+  DELIVERED = 'delivered',
+  SEEN= 'seen',
+  // extendable (video, file, etc.)
+}
+
 export const MessageSchema = new mongoose.Schema(
   {
     roomId: {

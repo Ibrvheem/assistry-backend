@@ -26,9 +26,14 @@ export class ChatController {
   // list messages for a room
   @Get('rooms/:roomId/messages')
   async getMessages(@Req() req: any, @Param('roomId') roomId: string, @Query('limit') limit = '50', @Query('before') before?: string) {
-    // TODO: validate user is participant — ChatService.getMessages could check but we leave it to caller or extend
     return this.chatService.getMessages(roomId, Number(limit), before);
   }
+
+  // @Get('rooms/:roomId/messages')
+  // async getMessages(@Req() req: any, @Param('roomId') roomId: string, @Query('limit') limit = '50', @Query('before') before?: string) {
+  //   // TODO: validate user is participant — ChatService.getMessages could check but we leave it to caller or extend
+  //   return this.chatService.getMessages(roomId, Number(limit), before);
+  // }
 
   // send message via REST (useful for mobile or when not using socket)
   @Post('messages')

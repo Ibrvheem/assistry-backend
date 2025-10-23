@@ -477,18 +477,66 @@ async getRoomsForUser(
   /**
    * Create and persist a new chat message.
    */
+  // async createMessage(
+  //   senderId: string,
+  //   dto: SendMessageDto,
+  // ): Promise<Lean<Message>> {
+  //   const room = await this.roomModel.findById(dto.roomId);
+  //   if (!room) throw new NotFoundException('Room not found');
+
+  //   if (!room.participants.map(String).includes(String(senderId))) {
+  //     throw new BadRequestException('Sender is not a participant of the room');
+  //   }
+
+  //   // 🔍 validate replyTo if provided
+  // let replyToDoc = null;
+  // if (dto.replyTo) {
+  //   replyToDoc = await this.messageModel.findById(dto.replyTo).lean();
+  //   if (!replyToDoc) throw new BadRequestException('Replied message not found');
+  //   if (replyToDoc.roomId.toString() !== dto.roomId.toString()) {
+  //     throw new BadRequestException('Cannot reply to a message from another room');
+  //   }
+  // }
+
+  //   const message = await this.messageModel.create({
+  //     roomId: dto.roomId,
+  //     sender: senderId,
+  //     type: dto.type,
+  //     text: dto.text,
+  //     attachments: dto.attachments || [],
+  //     readBy: [senderId],
+  //   });
+
+  //   // update lastMessageAt and increment unread counters
+  //   room.lastMessageAt = message.createdAt;
+  //   const unreadCounts = room.unreadCounts || new Map<string, number>();
+
+  //   room.participants.forEach((p: any) => {
+  //     const pid = p.toString();
+  //     if (pid !== senderId) {
+  //       const prev = unreadCounts.get(pid) || 0;
+  //       unreadCounts.set(pid, prev + 1);
+  //     }
+  //   });
+
+  //   room.unreadCounts = unreadCounts;
+  //   await room.save();
+
+  //   return message.toObject() as Lean<Message>;
+  // }
+
   async createMessage(
-    senderId: string,
-    dto: SendMessageDto,
-  ): Promise<Lean<Message>> {
-    const room = await this.roomModel.findById(dto.roomId);
-    if (!room) throw new NotFoundException('Room not found');
+  senderId: string,
+  dto: SendMessageDto,
+): Promise<Lean<Message>> {
+  const room = await this.roomModel.findById(dto.roomId).lean();
+  if (!room) throw new NotFoundException('Room not found');
 
-    if (!room.participants.map(String).includes(String(senderId))) {
-      throw new BadRequestException('Sender is not a participant of the room');
-    }
+  if (!room.participants.map(String).includes(String(senderId))) {
+    throw new BadRequestException('Sender is not a participant of the room');
+  }
 
-    // 🔍 validate replyTo if provided
+  // 🔍 Validate replyTo if provided
   let replyToDoc = null;
   if (dto.replyTo) {
     replyToDoc = await this.messageModel.findById(dto.replyTo).lean();
@@ -498,32 +546,38 @@ async getRoomsForUser(
     }
   }
 
-    const message = await this.messageModel.create({
-      roomId: dto.roomId,
-      sender: senderId,
-      type: dto.type,
-      text: dto.text,
-      attachments: dto.attachments || [],
-      readBy: [senderId],
-    });
+  // 📨 Create the message
+  const message = await this.messageModel.create({
+    roomId: dto.roomId,
+    sender: senderId,
+    type: dto.type,
+    text: dto.text,
+    attachments: dto.attachments || [],
+    readBy: [senderId],
+    replyTo: dto.replyTo ?? null,
+  });
 
-    // update lastMessageAt and increment unread counters
-    room.lastMessageAt = message.createdAt;
-    const unreadCounts = room.unreadCounts || new Map<string, number>();
-
-    room.participants.forEach((p: any) => {
-      const pid = p.toString();
-      if (pid !== senderId) {
-        const prev = unreadCounts.get(pid) || 0;
-        unreadCounts.set(pid, prev + 1);
-      }
-    });
-
-    room.unreadCounts = unreadCounts;
-    await room.save();
-
-    return message.toObject() as Lean<Message>;
+  // 🧮 Build unread counter increments
+  const unreadIncrements = {};
+  for (const participantId of room.participants.map(String)) {
+    if (participantId !== String(senderId)) {
+      unreadIncrements[`unreadCounts.${participantId}`] = 1;
+    }
   }
+
+  // ⚙️ Perform atomic update on the room (NO .save())
+  await this.roomModel.findByIdAndUpdate(
+    dto.roomId,
+    {
+      $set: { lastMessageAt: message.createdAt },
+      $inc: unreadIncrements,
+    },
+    { new: false }
+  );
+
+  return message.toObject() as Lean<Message>;
+}
+
 
   /**
    * Fetch messages for a room (paginated, newest first).
