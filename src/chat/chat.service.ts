@@ -675,7 +675,7 @@ async getMessages(
     roomId: new Types.ObjectId(roomId),
   };
 
-  if (before) query._id = { $lt: new Types.ObjectId(before) };
+  // if (before) query._id = { $lt: new Types.ObjectId(before) };
 
   const messages = await this.messageModel
     .aggregate([
@@ -686,7 +686,7 @@ async getMessages(
       { $sort: { _id: -1 } },
 
       // 3️⃣ Limit pagination
-      { $limit: limit },
+      // { $limit: limit },
 
       // 4️⃣ Join sender user (lean projection)
       {
@@ -764,6 +764,126 @@ async getMessages(
   // Reverse to ascending (oldest → newest) for chat scroll view
   return messages.reverse();
 }
+
+
+// async getMessages(
+//   roomId: string,
+//   limit = 50,
+//   before?: string,
+// ): Promise<{
+//   messages: Array<
+//     Lean<Message> & {
+//       senderUser?: { _id: string; first_name: string; last_name: string; profile_picture?: string };
+//       replyToMessage?: {
+//         _id: string;
+//         text?: string;
+//         type: string;
+//         senderUser?: { _id: string; first_name: string; last_name: string; profile_picture?: string };
+//       };
+//     }
+//   >;
+//   nextCursor?: string;
+// }> {
+//   const query: any = {
+//     roomId: new Types.ObjectId(roomId),
+//   };
+
+//   if (before) query._id = { $lt: new Types.ObjectId(before) };
+
+//   const messages = await this.messageModel
+//     .aggregate([
+//       // 1️⃣ Filter by room
+//       { $match: query },
+
+//       // 2️⃣ Sort newest → oldest
+//       { $sort: { _id: -1 } },
+
+//       // 3️⃣ Limit pagination
+//       { $limit: limit },
+
+//       // 4️⃣ Join sender user (lean projection)
+//       {
+//         $lookup: {
+//           from: 'users',
+//           localField: 'sender',
+//           foreignField: '_id',
+//           as: 'senderUser',
+//           pipeline: [
+//             { $project: { _id: 1, first_name: 1, last_name: 1, profile_picture: 1 } },
+//           ],
+//         },
+//       },
+//       { $unwind: '$senderUser' },
+
+//       // 5️⃣ Lookup replyTo message (only if exists)
+//       {
+//         $lookup: {
+//           from: 'messages',
+//           localField: 'replyTo',
+//           foreignField: '_id',
+//           as: 'replyToMessage',
+//           pipeline: [
+//             {
+//               $project: {
+//                 _id: 1,
+//                 text: 1,
+//                 type: 1,
+//                 sender: 1,
+//               },
+//             },
+//             {
+//               $lookup: {
+//                 from: 'users',
+//                 localField: 'sender',
+//                 foreignField: '_id',
+//                 as: 'senderUser',
+//                 pipeline: [
+//                   {
+//                     $project: {
+//                       _id: 1,
+//                       first_name: 1,
+//                       last_name: 1,
+//                       profile_picture: 1,
+//                     },
+//                   },
+//                 ],
+//               },
+//             },
+//             { $unwind: { path: '$senderUser', preserveNullAndEmptyArrays: true } },
+//           ],
+//         },
+//       },
+//       { $unwind: { path: '$replyToMessage', preserveNullAndEmptyArrays: true } },
+
+//       // 6️⃣ Final lean projection
+//       {
+//         $project: {
+//           _id: 1,
+//           roomId: 1,
+//           sender: 1,
+//           type: 1,
+//           text: 1,
+//           attachments: 1,
+//           createdAt: 1,
+//           readBy: 1,
+//           senderUser: 1,
+//           replyToMessage: 1,
+//         },
+//       },
+//     ])
+//     .allowDiskUse(true)
+//     .exec();
+
+//   // Reverse to ascending (oldest → newest) for chat scroll view
+//   const sortedMessages = messages.reverse(); // oldest → newest
+
+//   const nextCursor = sortedMessages.length
+//     ? sortedMessages[sortedMessages.length - 1]._id.toString()
+//     : undefined;
+
+//   return { messages: sortedMessages, nextCursor };
+//   // return messages.reverse();
+// }
 
 
   /**
