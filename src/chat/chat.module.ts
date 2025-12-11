@@ -13,6 +13,8 @@ import { UsersModule } from 'src/users/users.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { WsJwtGuard } from 'guards/ws-jwt.guard';
 
+import { SyncController } from './sync.controller';
+
 @Module({
   imports: [
     // ✅ MongoDB Schemas
@@ -39,7 +41,7 @@ import { WsJwtGuard } from 'guards/ws-jwt.guard';
     UsersModule
   ],
 
-  controllers: [ChatController],
+  controllers: [ChatController, SyncController],
   providers: [ChatService, ChatGateway, WsJwtGuard],
   exports: [ChatService],
 })

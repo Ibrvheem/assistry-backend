@@ -172,11 +172,19 @@ export class ChatGateway
 
     client.to(payload.roomId).emit('message', out);
     
-    client.emit('message', out);
+    // client.emit('message', out); // Don't echo back to sender if using optimistic UI + Ack
 
     await this.redisPub.publish(this.CHANNEL, JSON.stringify(out));
 
-    return { success: true, message: out };
+    // Return Acknowledgment
+    return { 
+      status: 'ok', 
+      data: {
+        id: message._id.toString(),
+        tempId: payload.tempId, // Ensure frontend sends a tempId
+        serverCreatedAt: message.createdAt
+      } 
+    };
   }
 
   /** Broadcast typing or recording indicators */

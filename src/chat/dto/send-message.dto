@@ -1,0 +1,28 @@
+import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+
+export class SendMessageDto {
+  @IsNotEmpty()
+  @IsString()
+  roomId: string;
+
+  @IsOptional()
+  @IsString()
+  text?: string;
+
+  @IsNotEmpty()
+  @IsString()
+  type: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  attachments?: string[];
+
+  @IsOptional()
+  @IsString()
+  replyTo?: string;
+
+  @IsOptional()
+  @IsString()
+  tempId?: string;
+}

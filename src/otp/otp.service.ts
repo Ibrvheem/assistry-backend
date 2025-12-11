@@ -64,7 +64,7 @@ function normalizePhone(raw: string | null | undefined): string | undefined {
 function normalizeForTermii(raw: string | null | undefined): string | undefined {
   const p = normalizePhone(raw);
   if (!p) return undefined;
-  return p.startsWith('+') ? p.slice(1) : p; // Termii wants no leading '+'
+  return p.startsWith('+') ? p.slice(1) : p; 
 }
 
 @Injectable()
