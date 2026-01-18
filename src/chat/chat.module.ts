@@ -38,7 +38,7 @@ import { SyncController } from './sync.controller';
     }),
     AuthModule,
     TasksModule,
-    UsersModule
+    UsersModule,
   ],
 
   controllers: [ChatController, SyncController],
