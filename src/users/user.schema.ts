@@ -11,10 +11,14 @@ export const UserSchema = new mongoose.Schema({
   otp: { type: String },
   department: { type: String },
   level: { type: String },
+  gender: { type: String },
+  state: { type: String },
+  institution: { type: mongoose.Schema.Types.ObjectId, ref: 'Institution' },
   bio: { type: String },
   status: { type: String },
   created_at: { type: Date },
   updated_at: { type: Date },
+  isAuthVerified: { type: Boolean },
 });
 
 export interface User {
@@ -26,11 +30,15 @@ export interface User {
   password: string;
   phone_no: string;
   reg_no: string;
-  department:  string,
-  level:  string,
-  bio: string,
+  department: string;
+  level: string;
+  gender: string;
+  state: string;
+  institution: string;
+  bio: string;
   otp: string;
   status: string;
   created_at: string;
   updated_at: string;
+  isAuthVerified: boolean;
 }

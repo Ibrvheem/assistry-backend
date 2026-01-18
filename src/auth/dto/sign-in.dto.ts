@@ -6,4 +6,7 @@ export class SignInDTO {
 
   @IsString()
   password: string;
+
+  @IsString()
+  push_token: string;
 }

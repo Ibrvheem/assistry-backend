@@ -8,7 +8,8 @@ import { JwtStrategy } from './auth/strategies/jwt.strategy';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtGuard } from 'guards/jwt.guard';
 import { MongooseModule } from '@nestjs/mongoose';
-import { UdusModule } from './udus/udus.module';
+// import { UdusModule } from './udus/udus.module';
+import { InstitutionModule } from './institution/institution.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { OtpModule } from './otp/otp.module';
@@ -30,7 +31,8 @@ import { UploadModule } from './upload/upload.module';
     DatabaseModule,
     AuthModule,
     UsersModule,
-    UdusModule,
+    // UdusModule,
+    InstitutionModule,
     TasksModule,
     OtpModule,
     ChatModule,

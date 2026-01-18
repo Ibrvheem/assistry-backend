@@ -14,7 +14,10 @@ import { sendOTPDTO, verifyOTPDTO } from './dto/send-otp.dto';
 import { REGSTATUS } from 'src/users/types';
 import { UpdateUserDto } from 'src/users/dto/update-auth.dto';
 import { User } from 'src/users/user.schema';
-import { WalletService } from '../wallet/wallet.service'; 
+import { WalletService } from '../wallet/wallet.service';
+import { OtpService } from 'src/otp/otp.service';
+import { SignUpDTO } from './dto/sign-up.dto';
+import { PureComponent } from 'react';
 
 @Injectable()
 export class AuthService {
@@ -22,6 +25,7 @@ export class AuthService {
     private readonly userService: UsersService,
     private readonly jwtService: JwtService,
     private readonly walletService: WalletService,
+    private readonly otpService: OtpService,
   ) {}
 
   async register(payload: UpdateUserDto) {
@@ -37,17 +41,154 @@ export class AuthService {
         },
         isUser.id,
       );
-       try {
-      await this.walletService.createWalletForUser(isUser.id);
-        } catch (err) {
-          // don't fail user creation for wallet errors; log and proceed
-          console.error('create wallet failed', err);
-        }
+      try {
+        await this.walletService.createWalletForUser(isUser.id);
+      } catch (err) {
+        // don't fail user creation for wallet errors; log and proceed
+        console.error('create wallet failed', err);
+      }
       return SUCCESS;
     } catch (err) {
       throw new NotFoundException(err);
     }
   }
+
+  // async registerStudent(payload: CreateUserDto) {
+  //   const isUser = await this.userService.getUserByRegNoInstitution(
+  //     payload.reg_no,
+  //     payload.institution,
+  //   );
+  //   if (
+  //     isUser &&
+  //     isUser.status === REGSTATUS.COMPLETED &&
+  //     isUser.isAuthVerified
+  //   ) {
+  //     throw new BadRequestException('User already exists');
+  //   }
+  //   const hashedPassword = await bcrypt.hash(payload.password, 10);
+
+  //   if (isUser.isAuthVerified && !isUser.isAuthVerified) {
+  //     await this.userService.updateUser(
+  //       {
+  //         ...payload,
+  //         password: hashedPassword,
+  //       },
+  //       isUser.id,
+  //     );
+  //     try {
+  //       await this.otpService.sendEmailOtp(payload.email);
+  //     } catch (err) {
+  //       // don't fail user creation for wallet errors; log and proceed
+  //       console.error('sending otp failed', err);
+  //     }
+  //     return {
+  //       userId: isUser.id,
+  //       status: 200,
+  //       message: 'Otp sent successfully',
+  //     };
+  //   }
+
+  //   try {
+  //     const user = await this.userService.createUser({
+  //       ...payload,
+  //       password: hashedPassword,
+  //     });
+  //     try {
+  //       await this.walletService.createWalletForUser(user.id);
+  //     } catch (err) {
+  //       // don't fail user creation for wallet errors; log and proceed
+  //       console.error('create wallet failed', err);
+  //     }
+  //     // await this.userService.updateUser(
+  //     //   {
+  //     //     status: REGSTATUS.COMPLETED,
+  //     //   },
+  //     //   user.id,
+  //     // );
+  //     try {
+  //       await this.otpService.sendEmailOtp(payload.email);
+  //     } catch (err) {
+  //       // don't fail user creation for wallet errors; log and proceed
+  //       console.error('sending otp failed', err);
+  //     }
+  //     return {
+  //       userId: user.id,
+  //       status: 200,
+  //       message: 'Otp sent successfully',
+  //     };
+  //   } catch (err) {
+  //     throw new NotFoundException(err);
+  //   }
+  // }
+  async registerStudent(payload: CreateUserDto) {
+    const isUser = await this.userService.getUserByRegNoInstitution(
+      payload.reg_no,
+      payload.institution,
+    );
+
+    // 1️⃣ User already completed & verified
+    if (
+      isUser &&
+      isUser.status === REGSTATUS.COMPLETED &&
+      isUser.isAuthVerified
+    ) {
+      throw new BadRequestException('User already exists');
+    }
+
+    const hashedPassword = await bcrypt.hash(payload.password, 10);
+
+    // 2️⃣ User exists but NOT verified → update & resend OTP
+    if (isUser && !isUser.isAuthVerified) {
+      await this.userService.updateUser(
+        {
+          ...payload,
+          password: hashedPassword,
+        },
+        isUser.id,
+      );
+
+      try {
+        await this.otpService.sendEmailOtp(payload.email);
+      } catch (err) {
+        console.error('sending otp failed', err);
+      }
+
+      return {
+        userId: isUser.id,
+        status: 200,
+        message: 'Otp sent successfully',
+      };
+    }
+
+    // 3️⃣ User does NOT exist → create new
+    try {
+      const user = await this.userService.createUser({
+        ...payload,
+        password: hashedPassword,
+      });
+
+      try {
+        await this.walletService.createWalletForUser(user.id);
+      } catch (err) {
+        console.error('create wallet failed', err);
+      }
+
+      try {
+        await this.otpService.sendEmailOtp(payload.email);
+      } catch (err) {
+        console.error('sending otp failed', err);
+      }
+
+      return {
+        userId: user.id,
+        status: 200,
+        message: 'Otp sent successfully',
+      };
+    } catch (err) {
+      throw new BadRequestException(err.message);
+    }
+  }
+
   async validateUser(reg_no: string, password: string) {
     const user = await this.userService.findUserByRegNo(reg_no.toLowerCase());
 
@@ -62,7 +203,11 @@ export class AuthService {
     return user;
   }
   async login(user: User) {
-    const payload = { reg_no: user.reg_no, userId: user.id, first_name:user.first_name };
+    const payload = {
+      reg_no: user.reg_no,
+      userId: user.id,
+      first_name: user.first_name,
+    };
 
     return {
       access_token: this.jwtService.sign(payload),
@@ -76,21 +221,46 @@ export class AuthService {
       },
     };
   }
-  
+
+  async requestForgot(email: string) {
+    const user = await this.userService.findUserByEmail(email);
+    if (!user) throw new BadRequestException('No User found with this email');
+    // await this.sendOtp(email, 'forgot_password');
+    await this.otpService.sendEmailOtp(email);
+    return true;
+  }
+
+  async resetPassword(email: string, code: string, newPassword: string) {
+    const user = await this.userService.findUserByEmail(email);
+    if (!user) throw new BadRequestException('No User found with this email');
+    const otp = code;
+    const purpose = 'reset_password';
+    try {
+      await this.verifyOTP({ email, otp, purpose });
+    } catch (err) {
+      throw new BadRequestException(err);
+    }
+    const hash = await bcrypt.hash(newPassword, 10);
+    await this.userService.updateUser(
+      {
+        password: hash,
+      },
+      user.id,
+    );
+    return true;
+  }
 
   async run() {
     // const user= this.userService.findUserByEmail('Jamils@gmail.com');
     const user = await this.userService.getUserByRegNo('1711402030');
     const hashedPassword = await bcrypt.hash('1234', 10);
-      await this.userService.updateUser(
-        {
-          password: hashedPassword,
-        },
-        user.id,
-      );
+    await this.userService.updateUser(
+      {
+        password: hashedPassword,
+      },
+      user.id,
+    );
     return user;
-
-    
   }
   async sendOTP(payload: sendOTPDTO) {
     const otp = Math.floor(100000 + Math.random() * 900000);
@@ -118,18 +288,28 @@ export class AuthService {
       if (!user) {
         throw new NotFoundException('User not found');
       }
-
-      if (user.otp === payload.otp) {
-        await this.userService.updateUser(
-          {
-            status: 'otp_verified',
-          },
-          user.id,
-        );
-        return SUCCESS;
-      } else {
+      try {
+        await this.otpService.verifyEmailOtp(payload.email, payload.otp);
+      } catch (err) {
         throw new BadRequestException('Unable to verify OTP');
       }
+
+      if (payload.purpose && payload.purpose == 'auth_account') {
+        await this.userService.updateUserVerification(true, user.id);
+      }
+      return SUCCESS;
+
+      // if (user.otp === payload.otp) {
+      //   await this.userService.updateUser(
+      //     {
+      //       status: 'otp_verified',
+      //     },
+      //     user.id,
+      //   );
+      //   return SUCCESS;
+      // } else {
+      //   throw new BadRequestException('Unable to verify OTP');
+      // }
     } catch (err) {
       throw new InternalServerErrorException();
     }

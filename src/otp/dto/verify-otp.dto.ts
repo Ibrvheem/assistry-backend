@@ -1,4 +1,4 @@
-import { IsPhoneNumber, IsString, Length } from 'class-validator';
+import { IsOptional, IsPhoneNumber, IsString, Length } from 'class-validator';
 
 // export class VerifyOtpDto {
 //   @IsString()
@@ -12,10 +12,10 @@ import { IsPhoneNumber, IsString, Length } from 'class-validator';
 
 export class VerifyOtpDto {
   // client will send pin_id returned from send endpoint
+  @IsOptional()
   @IsString()
-  pin_id: string;
+  pin_id?: string;
   // user-entered code (OTP)
   @IsString()
-  // @Length(6, 6) 
   code: string;
 }

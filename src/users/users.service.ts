@@ -19,15 +19,14 @@ export class UsersService {
   }
 
   async findUsersByIds(ids: string[]) {
-  return this.userModel
-    .find({ _id: { $in: ids } })
-    .select('_id first_name last_name profile_picture email') 
-    .select('-password')
-    .select('-otp')// select only what you need
-    .lean()
-    .exec();
-}
-
+    return this.userModel
+      .find({ _id: { $in: ids } })
+      .select('_id first_name last_name profile_picture email')
+      .select('-password')
+      .select('-otp') // select only what you need
+      .lean()
+      .exec();
+  }
 
   async findUserByEmail(email: string) {
     return await this.userModel.findOne({ email }).exec();
@@ -35,6 +34,10 @@ export class UsersService {
 
   async findUserByRegNo(reg_no: string) {
     return await this.userModel.findOne({ reg_no }).exec();
+  }
+
+  async getUserByRegNoInstitution(reg_no: string, institution: string) {
+    return await this.userModel.findOne({ reg_no, institution }).exec();
   }
   async createUser(payload: CreateUserDto) {
     const newUser = new this.userModel(payload);
@@ -48,6 +51,15 @@ export class UsersService {
       },
       payload,
     );
+    return user;
+  }
+
+  async updateUserVerification(isAuthVerified: boolean, userId: string) {
+    const user = await this.userModel.updateOne(
+      { _id: userId },
+      { $set: { isAuthVerified } },
+    );
+
     return user;
   }
   async getUsers() {

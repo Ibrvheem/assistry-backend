@@ -1,4 +1,4 @@
-import { IsDate, IsOptional, IsString } from 'class-validator';
+import { IsDate, IsMongoId, IsOptional, IsString } from 'class-validator';
 
 export class CreateUserDto {
   @IsString()
@@ -29,19 +29,28 @@ export class CreateUserDto {
   @IsOptional()
   otp: string;
 
-   @IsString()
-  @IsOptional()
+  @IsString()
+  // @IsOptional()
   department: string;
 
-   @IsString()
-  @IsOptional()
+  @IsString()
+  // @IsOptional()
   level: string;
 
-   @IsString()
+  @IsString()
+  gender: string;
+  @IsString()
+  state: string;
+
+  @IsMongoId()
+  institution: string;
+
+  @IsString()
   @IsOptional()
   bio: string;
 
   @IsString()
+  @IsOptional()
   status: string;
 
   @IsDate()

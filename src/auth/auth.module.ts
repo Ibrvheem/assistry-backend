@@ -10,13 +10,15 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { Mongoose } from 'mongoose';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UsersModule } from 'src/users/users.module';
-import { WalletModule } from 'src/wallet/wallet.module'; 
+import { WalletModule } from 'src/wallet/wallet.module';
+import { OtpModule } from 'src/otp/otp.module';
 
 @Module({
   imports: [
     ConfigModule,
     UsersModule,
-    
+    OtpModule,
+
     JwtModule.registerAsync({
       imports: [ConfigModule, UsersModule],
       inject: [ConfigService],
@@ -35,6 +37,6 @@ import { WalletModule } from 'src/wallet/wallet.module';
     LocalStrategy,
     JwtStrategy,
   ],
-   exports: [JwtModule, AuthService],
+  exports: [JwtModule, AuthService],
 })
 export class AuthModule {}

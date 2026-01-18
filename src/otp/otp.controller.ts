@@ -17,8 +17,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
 export class OtpController {
   constructor(private readonly otpService: OtpService) {}
 
-
-   @Post('/send')
+  @Post('/send')
   async send(@Body('phone_no') phone_no: string) {
     // returns Termii response that includes pinId
     console.log('Phone number received:', phone_no);
@@ -30,17 +29,13 @@ export class OtpController {
     return this.otpService.verifyOtp(body);
   }
 
-  // @Post('/send')
-  // sendOTP(@Body() payload: SendOtpDto) {
-  //   const p=this.otpService.sendOtp(payload.phone_no);
-  //   return p;
-  // }
+  @Post('/email/send')
+  async sendEmail(@Body('email') email: string) {
+    return this.otpService.sendEmailOtp(email);
+  }
 
-  // @Post('/verify')
-  // verifyOTP(@Body() payload: VerifyOtpDto) {
-  //   console.log(payload);
-  //   const p=this.otpService.verifyOtp(payload);
-  //   console.log(p);
-  //   return p; 
-  // }
+  @Post('/email/verify')
+  async verifyEmail(@Body('email') email: string, @Body('code') code: string) {
+    return this.otpService.verifyEmailOtp(email, code);
+  }
 }

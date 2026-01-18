@@ -1,4 +1,4 @@
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsOptional, IsString } from 'class-validator';
 
 export class sendOTPDTO {
   @IsEmail()
@@ -13,4 +13,7 @@ export class verifyOTPDTO {
   otp: string;
   @IsString()
   email: string;
+
+  @IsOptional()
+  purpose: string;
 }
