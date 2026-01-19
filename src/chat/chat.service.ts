@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { ChatRoom } from './schemas/chat-room.schema';
@@ -23,13 +28,15 @@ export class ChatService {
   /**
    * Find an existing room between participants for a given task, or create a new one.
    */
-  async findOrCreateRoom(
-    creatorId: string,
-    dto: CreateRoomDto,
-  ): Promise<any> {
-    const participantsSet = new Set<string>([creatorId, ...(dto.participants || [])]);
+  async findOrCreateRoom(creatorId: string, dto: CreateRoomDto): Promise<any> {
+    const participantsSet = new Set<string>([
+      creatorId,
+      ...(dto.participants || []),
+    ]);
     if (participantsSet.size < 2) {
-      throw new BadRequestException('At least two distinct participants required');
+      throw new BadRequestException(
+        'At least two distinct participants required',
+      );
     }
 
     const participants = Array.from(participantsSet).sort();
@@ -75,7 +82,14 @@ export class ChatService {
             foreignField: '_id',
             as: 'users',
             pipeline: [
-              { $project: { _id: 1, first_name: 1, last_name: 1, profile_picture: 1 } },
+              {
+                $project: {
+                  _id: 1,
+                  first_name: 1,
+                  last_name: 1,
+                  profile_picture: 1,
+                },
+              },
             ],
           },
         },
@@ -164,11 +178,7 @@ export class ChatService {
   /**
    * Retrieve chat rooms for a given user.
    */
-  async getRoomsForUser(
-    userId: string,
-    limit = 20,
-    skip = 0,
-  ): Promise<any[]> {
+  async getRoomsForUser(userId: string, limit = 20, skip = 0): Promise<any[]> {
     const objectUserId = new Types.ObjectId(userId);
 
     const rooms = await this.roomModel
@@ -186,7 +196,14 @@ export class ChatService {
             foreignField: '_id',
             as: 'users',
             pipeline: [
-              { $project: { _id: 1, first_name: 1, last_name: 1, profile_picture: 1 } },
+              {
+                $project: {
+                  _id: 1,
+                  first_name: 1,
+                  last_name: 1,
+                  profile_picture: 1,
+                },
+              },
             ],
           },
         },
@@ -236,13 +253,20 @@ export class ChatService {
             as: 'lastMessage',
           },
         },
-        { $unwind: { path: '$lastMessage', preserveNullAndEmptyArrays: true } },
+        { $unwind: { path: '$lastMessage' } },
 
         // Compute unreadCount dynamically
         {
           $addFields: {
             unreadCount: {
-              $ifNull: [{ $toInt: { $getField: { field: userId, input: '$unreadCounts' } } }, 0],
+              $ifNull: [
+                {
+                  $toInt: {
+                    $getField: { field: userId, input: '$unreadCounts' },
+                  },
+                },
+                0,
+              ],
             },
           },
         },
@@ -286,9 +310,12 @@ export class ChatService {
     // Validate replyTo if provided
     if (dto.replyTo) {
       const replyToDoc = await this.messageModel.findById(dto.replyTo).lean();
-      if (!replyToDoc) throw new BadRequestException('Replied message not found');
+      if (!replyToDoc)
+        throw new BadRequestException('Replied message not found');
       if (replyToDoc.roomId.toString() !== dto.roomId.toString()) {
-        throw new BadRequestException('Cannot reply to a message from another room');
+        throw new BadRequestException(
+          'Cannot reply to a message from another room',
+        );
       }
     }
 
@@ -318,7 +345,7 @@ export class ChatService {
         $set: { lastMessageAt: message.createdAt },
         $inc: unreadIncrements,
       },
-      { new: false }
+      { new: false },
     );
 
     return message.toObject() as Lean<Message>;
@@ -351,7 +378,14 @@ export class ChatService {
             foreignField: '_id',
             as: 'senderUser',
             pipeline: [
-              { $project: { _id: 1, first_name: 1, last_name: 1, profile_picture: 1 } },
+              {
+                $project: {
+                  _id: 1,
+                  first_name: 1,
+                  last_name: 1,
+                  profile_picture: 1,
+                },
+              },
             ],
           },
         },
@@ -390,11 +424,21 @@ export class ChatService {
                   ],
                 },
               },
-              { $unwind: { path: '$senderUser', preserveNullAndEmptyArrays: true } },
+              {
+                $unwind: {
+                  path: '$senderUser',
+                  preserveNullAndEmptyArrays: true,
+                },
+              },
             ],
           },
         },
-        { $unwind: { path: '$replyToMessage', preserveNullAndEmptyArrays: true } },
+        {
+          $unwind: {
+            path: '$replyToMessage',
+            preserveNullAndEmptyArrays: true,
+          },
+        },
         // Final lean projection
         {
           $project: {
@@ -448,32 +492,41 @@ export class ChatService {
     const date = new Date(lastPulledAt);
 
     // 1. Get updated rooms
-    const rooms = await this.roomModel
+    const rooms = (await this.roomModel
       .find({
         participants: userId,
         updatedAt: { $gt: date },
       })
       .populate('participants', 'first_name last_name profile_picture')
-      .lean() as any[];
+      .lean()) as any[];
 
     // 2. Get updated messages
-    const userRooms = await this.roomModel.find({ participants: userId }).select('_id');
+    const userRooms = await this.roomModel
+      .find({ participants: userId })
+      .select('_id');
     const roomIds = userRooms.map((r) => r._id);
 
-    const messages = await this.messageModel
+    const messages = (await this.messageModel
       .find({
         roomId: { $in: roomIds },
         createdAt: { $gt: date },
       })
-      .lean() as any[];
+      .lean()) as any[];
 
     return {
       conversations: {
         created: rooms.map((r) => {
-          const otherUser = r.participants.find((p: any) => p._id.toString() !== userId);
-          const name = r.name || (otherUser ? `${otherUser.first_name} ${otherUser.last_name}` : 'Unknown');
-          const avatar = r.avatar || (otherUser ? otherUser.profile_picture : '');
-          
+          const otherUser = r.participants.find(
+            (p: any) => p._id.toString() !== userId,
+          );
+          const name =
+            r.name ||
+            (otherUser
+              ? `${otherUser.first_name} ${otherUser.last_name}`
+              : 'Unknown');
+          const avatar =
+            r.avatar || (otherUser ? otherUser.profile_picture : '');
+
           return {
             id: r._id.toString(),
             name,
@@ -489,15 +542,15 @@ export class ChatService {
       },
       messages: {
         created: messages.map((m) => ({
-            id: m._id.toString(),
-            conversation_id: m.roomId.toString(),
-            sender_id: m.sender.toString(),
-            content: m.text,
-            type: m.type,
-            status: 'delivered',
-            created_at: new Date(m.createdAt).getTime(),
-            attachments: JSON.stringify(m.attachments || []),
-            reply_to: JSON.stringify(m.replyTo || null),
+          id: m._id.toString(),
+          conversation_id: m.roomId.toString(),
+          sender_id: m.sender.toString(),
+          content: m.text,
+          type: m.type,
+          status: 'delivered',
+          created_at: new Date(m.createdAt).getTime(),
+          attachments: JSON.stringify(m.attachments || []),
+          reply_to: JSON.stringify(m.replyTo || null),
         })),
         updated: [],
         deleted: [],
@@ -512,10 +565,10 @@ export class ChatService {
     if (changes.messages?.created) {
       for (const msg of changes.messages.created) {
         await this.createMessage(userId, {
-            roomId: msg.conversation_id,
-            text: msg.content,
-            type: msg.type,
-            // attachments: [],
+          roomId: msg.conversation_id,
+          text: msg.content,
+          type: msg.type,
+          // attachments: [],
         });
       }
     }
