@@ -1,5 +1,3 @@
-
-
 import {
   SubscribeMessage,
   WebSocketGateway,
@@ -52,7 +50,11 @@ export class ChatGateway
     this.redisSub = this.redisClient.duplicate();
 
     // Subscribe to Redis channels
-    this.redisSub.subscribe(this.CHANNEL, this.TYPING_CHANNEL, this.STATUS_CHANNEL);
+    this.redisSub.subscribe(
+      this.CHANNEL,
+      this.TYPING_CHANNEL,
+      this.STATUS_CHANNEL,
+    );
 
     this.redisSub.on('message', (channel: string, message: string) => {
       const parsed = JSON.parse(message);
@@ -81,7 +83,10 @@ export class ChatGateway
         let token =
           socket.handshake?.auth?.token ||
           (socket.handshake?.query?.token as string) ||
-          (socket.handshake?.headers?.authorization || '').replace(/^Bearer\s+/i, '');
+          (socket.handshake?.headers?.authorization || '').replace(
+            /^Bearer\s+/i,
+            '',
+          );
 
         if (!token) {
           this.logger.warn('No token on handshake');
@@ -90,7 +95,7 @@ export class ChatGateway
 
         const payload = this.jwtService.verify(token, {
           secret: this.config.get<string>('JWT_SECRET'),
-          ignoreExpiration:true
+          ignoreExpiration: true,
         });
 
         socket.data.user = payload;
@@ -154,9 +159,9 @@ export class ChatGateway
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
-    console.log('Message comng in ', payload)
+    console.log('Message comng in ', payload);
     const message = await this.chatService.createMessage(user.userId, payload);
-    console.log('Message Processed', message)
+    console.log('Message Processed', message);
 
     const out = {
       _id: message._id,
@@ -170,34 +175,35 @@ export class ChatGateway
       status: 'sent',
     };
 
-    client.to(payload.roomId).emit('message', out);
-    
+    // client.to(payload.roomId).emit('message', out); // Removed to prevent duplicates (Redis Pub/Sub handles it)
+
     // client.emit('message', out); // Don't echo back to sender if using optimistic UI + Ack
 
     await this.redisPub.publish(this.CHANNEL, JSON.stringify(out));
 
     // Return Acknowledgment
-    return { 
-      status: 'ok', 
+    return {
+      status: 'ok',
       data: {
         id: message._id.toString(),
         tempId: payload.tempId, // Ensure frontend sends a tempId
-        serverCreatedAt: message.createdAt
-      } 
+        serverCreatedAt: message.createdAt,
+      },
     };
   }
 
   /** Broadcast typing or recording indicators */
   @SubscribeMessage('typing')
   async handleTyping(
-    @MessageBody() payload: { roomId: string; isTyping: boolean; isRecording?: boolean },
+    @MessageBody()
+    payload: { roomId: string; isTyping: boolean; isRecording?: boolean },
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
     const data = {
       roomId: payload.roomId,
       userId: user.first_name ?? 'user',
-      first_name:user.first_name,
+      first_name: user.first_name,
       isTyping: payload.isTyping,
       isRecording: payload.isRecording ?? false,
     };
@@ -213,7 +219,10 @@ export class ChatGateway
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
-    const update = await this.chatService.updateMessageStatus(payload.messageId, 'delivered');
+    const update = await this.chatService.updateMessageStatus(
+      payload.messageId,
+      'delivered',
+    );
 
     const data = {
       roomId: payload.roomId,
@@ -236,7 +245,10 @@ export class ChatGateway
     @ConnectedSocket() client: Socket,
   ) {
     const user = client.data.user;
-    const update = await this.chatService.updateMessageStatus(payload.messageId, 'seen');
+    const update = await this.chatService.updateMessageStatus(
+      payload.messageId,
+      'seen',
+    );
 
     const data = {
       roomId: payload.roomId,
