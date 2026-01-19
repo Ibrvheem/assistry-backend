@@ -226,7 +226,11 @@ export class AuthService {
     const user = await this.userService.findUserByEmail(email);
     if (!user) throw new BadRequestException('No User found with this email');
     // await this.sendOtp(email, 'forgot_password');
-    await this.otpService.sendEmailOtp(email);
+    try {
+      await this.otpService.sendEmailOtp(email);
+    } catch (err) {
+      throw new BadRequestException(err);
+    }
     return true;
   }
 
