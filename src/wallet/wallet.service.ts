@@ -1,5 +1,9 @@
 // src/wallet/wallet.service.ts
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types, Document } from 'mongoose';
 import { Wallet } from './schemas/wallet.schema';
@@ -28,27 +32,31 @@ import { v4 as uuidv4 } from 'uuid';
 const PAYSTACK_BASE = 'https://api.paystack.co';
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET || ''; // make sure env var is set
 
-
 @Injectable()
 export class WalletService {
   constructor(
     @InjectModel(Wallet.name) private walletModel: Model<Wallet & Document>,
-    @InjectModel(Transaction.name) private txModel: Model<Transaction & Document>,
+    @InjectModel(Transaction.name)
+    private txModel: Model<Transaction & Document>,
   ) {}
 
   /** Helper to normalize userId to ObjectId without using global String() */
-//   private toObjectId(id: string | Types.ObjectId): Types.ObjectId {
-//     if (id instanceof Types.ObjectId) return id;
-//     return new Types.ObjectId(String(id));
-//   }
+  //   private toObjectId(id: string | Types.ObjectId): Types.ObjectId {
+  //     if (id instanceof Types.ObjectId) return id;
+  //     return new Types.ObjectId(String(id));
+  //   }
 
   /**
    * Ensure a wallet exists for a user and return it.
    * Returns WalletWithId to guarantee _id is present for callers.
    */
-  async createWalletForUser(userId: string | Types.ObjectId): Promise<WalletWithId> {
+  async createWalletForUser(
+    userId: string | Types.ObjectId,
+  ): Promise<WalletWithId> {
     const uid = userId;
-    const existing = (await this.walletModel.findOne({ user: uid }).exec()) as WalletWithId | null;
+    const existing = (await this.walletModel
+      .findOne({ user: uid })
+      .exec()) as WalletWithId | null;
     if (existing) return existing;
 
     const created = (await this.walletModel.create({
@@ -59,27 +67,31 @@ export class WalletService {
     return created;
   }
 
-
-
   /**
    * Get or create wallet for the user.
    * Return type guarantees _id exists.
    */
-  async getOrCreateWallet(userId: string | Types.ObjectId): Promise<WalletWithId> {
+  async getOrCreateWallet(
+    userId: string | Types.ObjectId,
+  ): Promise<WalletWithId> {
     const uid = userId;
-    let wallet = (await this.walletModel.findOne({ user: uid }).exec()) as WalletWithId | null;
+    let wallet = (await this.walletModel
+      .findOne({ user: uid })
+      .exec()) as WalletWithId | null;
     if (!wallet) wallet = await this.createWalletForUser(uid);
     return wallet;
   }
 
-
-
   /**
    * Get wallet by user (throws if not found).
    */
-  async getWalletByUser(userId: string | Types.ObjectId): Promise<WalletWithId> {
+  async getWalletByUser(
+    userId: string | Types.ObjectId,
+  ): Promise<WalletWithId> {
     const uid = userId;
-    const wallet = (await this.walletModel.findOne({ user: uid }).exec()) as WalletWithId | null;
+    const wallet = (await this.walletModel
+      .findOne({ user: uid })
+      .exec()) as WalletWithId | null;
     if (!wallet) throw new NotFoundException('Wallet not found');
     return wallet;
   }
@@ -109,57 +121,64 @@ export class WalletService {
   // }
 
   async listTransactionsForUser(
-      userId: string | Types.ObjectId,
-      page = 1,
-      limit = 20,
-      type?: TransactionType | 'all',
-    ): Promise<{ data: TransactionWithId[]; meta: { page: number; limit: number; total: number } }> {
-      const wallet = await this.getOrCreateWallet(userId);
-      const skip = (page - 1) * limit;
+    userId: string | Types.ObjectId,
+    page = 1,
+    limit = 20,
+    type?: TransactionType | 'all',
+  ): Promise<{
+    data: TransactionWithId[];
+    meta: { page: number; limit: number; total: number };
+  }> {
+    const wallet = await this.getOrCreateWallet(userId);
+    const skip = (page - 1) * limit;
 
-      const filter: any = { wallet: wallet._id };
-      if (type && type !== 'all') {
-        filter.type = type;
-      }
-
-      const [rows, count] = await Promise.all([
-        this.txModel
-          .find(filter)
-          .sort({ createdAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .exec() as Promise<TransactionWithId[]>,
-        this.txModel.countDocuments(filter).exec(),
-      ]);
-
-      return { data: rows, meta: { page, limit, total: count } };
+    const filter: any = { wallet: wallet._id };
+    if (type && type !== 'all') {
+      filter.type = type;
     }
 
+    const [rows, count] = await Promise.all([
+      this.txModel
+        .find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .exec() as Promise<TransactionWithId[]>,
+      this.txModel.countDocuments(filter).exec(),
+    ]);
+
+    return { data: rows, meta: { page, limit, total: count } };
+  }
 
   /**
    * Create a transaction idempotently using the provided reference.
    * Returns TransactionWithId so callers can rely on _id presence.
    */
   async reference_generator(prefix: string | null): Promise<string> {
-  // Generate a timestamp-based unique part
-  const timestamp = Date.now().toString(36); // Convert to base36 for compactness
-  
-  // Generate a random string for additional uniqueness
-  const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+    // Generate a timestamp-based unique part
+    const timestamp = Date.now().toString(36); // Convert to base36 for compactness
 
-  // Combine parts with optional prefix
-  const reference = prefix
-    ? `${prefix.toUpperCase()}-${timestamp}-${randomPart}`
-    : `${timestamp}-${randomPart}`;
+    // Generate a random string for additional uniqueness
+    const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-  return reference;
-}
+    // Combine parts with optional prefix
+    const reference = prefix
+      ? `${prefix.toUpperCase()}-${timestamp}-${randomPart}`
+      : `${timestamp}-${randomPart}`;
 
-  async createTransaction(userId: string | Types.ObjectId, dto: CreateTransactionDto): Promise<TransactionWithId> {
+    return reference;
+  }
+
+  async createTransaction(
+    userId: string | Types.ObjectId,
+    dto: CreateTransactionDto,
+  ): Promise<TransactionWithId> {
     const wallet = await this.getOrCreateWallet(userId);
 
     // Idempotency: return existing transaction if found
-    const existing = (await this.txModel.findOne({ reference: dto.reference }).exec()) as TransactionWithId | null;
+    const existing = (await this.txModel
+      .findOne({ reference: dto.reference })
+      .exec()) as TransactionWithId | null;
     if (existing) return existing;
 
     // Create pending transaction (cast to TransactionWithId)
@@ -175,7 +194,13 @@ export class WalletService {
     // Apply amount
     if (dto.type === TransactionType.CREDIT) {
       // atomic increment for credit
-      await this.walletModel.findByIdAndUpdate(wallet._id, { $inc: { balance_kobo: dto.amount_kobo } }, { new: true }).exec();
+      await this.walletModel
+        .findByIdAndUpdate(
+          wallet._id,
+          { $inc: { balance_kobo: dto.amount_kobo } },
+          { new: true },
+        )
+        .exec();
 
       tx.status = TransactionStatus.SUCCESS;
       await tx.save();
@@ -184,11 +209,13 @@ export class WalletService {
 
     if (dto.type === TransactionType.DEBIT) {
       // Attempt atomic decrement only if enough balance
-      const updated = await this.walletModel.findOneAndUpdate(
-        { _id: wallet._id, balance_kobo: { $gte: dto.amount_kobo } },
-        { $inc: { balance_kobo: -dto.amount_kobo } },
-        { new: true },
-      ).exec();
+      const updated = await this.walletModel
+        .findOneAndUpdate(
+          { _id: wallet._id, balance_kobo: { $gte: dto.amount_kobo } },
+          { $inc: { balance_kobo: -dto.amount_kobo } },
+          { new: true },
+        )
+        .exec();
 
       if (!updated) {
         tx.status = TransactionStatus.FAILED;
@@ -207,136 +234,173 @@ export class WalletService {
     throw new BadRequestException('Invalid transaction type');
   }
 
-
-  async Initialize(userId: string | Types.ObjectId, amount_kobo: number, email: string): Promise<WalletWithId> {
+  async Initialize(
+    userId: string | Types.ObjectId,
+    amount_kobo: number,
+    email: string,
+  ): Promise<WalletWithId> {
     // 1) ensure wallet exists
-        const wallet = await this.getOrCreateWallet(userId); // returns WalletWithId
+    const wallet = await this.getOrCreateWallet(userId); // returns WalletWithId
 
-        // 2) create a server-side unique reference (idempotency)
-        const reference = `psk_${uuidv4()}`;
+    // 2) create a server-side unique reference (idempotency)
+    const reference = `psk_${uuidv4()}`;
 
-        // 3) create a pending transaction record (idempotent by reference)
-        //    cast to TransactionWithId to satisfy callers expecting _id present
-        const tx = (await this.txModel.create({
-            wallet: wallet._id,
-            type: TransactionType.CREDIT,
-            amount_kobo,
-            reference,
-            status: TransactionStatus.PENDING,
-            metadata: { email },
-        })) as unknown as TransactionWithId;
+    // 3) create a pending transaction record (idempotent by reference)
+    //    cast to TransactionWithId to satisfy callers expecting _id present
+    const tx = (await this.txModel.create({
+      wallet: wallet._id,
+      type: TransactionType.CREDIT,
+      amount_kobo,
+      reference,
+      status: TransactionStatus.PENDING,
+      metadata: { email },
+    })) as unknown as TransactionWithId;
 
-        // 4) Prepare payload for Paystack initialize
-        const payload: Record<string, any> = {
-            amount: amount_kobo,
-            email,
-            reference,
-            callback_url: "https://15b17e569045.ngrok-free.app/paystack/callback",
-            metadata: {
-            user_id: String(wallet.user), // attach user mapping so webhook/verify can find user
-            wallet_id: String(wallet._id),
-            local_reference: reference,
-            },
+    // 4) Prepare payload for Paystack initialize
+    const payload: Record<string, any> = {
+      amount: amount_kobo,
+      email,
+      reference,
+      callback_url: 'https://15b17e569045.ngrok-free.app/paystack/callback',
+      metadata: {
+        user_id: String(wallet.user), // attach user mapping so webhook/verify can find user
+        wallet_id: String(wallet._id),
+        local_reference: reference,
+      },
+    };
+
+    // 5) Call Paystack initialize endpoint
+    try {
+      console.log(PAYSTACK_SECRET);
+      const res = await axios.post(
+        `${PAYSTACK_BASE}/transaction/initialize`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer sk_test_9c1a6166689818e08f0347c90cd1844447307b9c`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 20000,
+        },
+      );
+
+      // paystack returns { status: true, message: "...", data: { authorization_url, reference, ... } }
+      const paystackData = res.data?.data ?? null;
+
+      // 6) Save Paystack response into the transaction metadata (so verify/webhook can use it)
+      tx.metadata = {
+        ...(tx.metadata || {}),
+        paystack_init: paystackData,
+      };
+      await tx.save();
+
+      // 7) Attach the init payload to the returned wallet object at runtime (no schema change).
+      //    This lets your controller access authorization_url & reference from the returned wallet.
+      (wallet as any).last_paystack_init = paystackData; // runtime-only property
+
+      // 8) return wallet (with runtime last_paystack_init)
+      return wallet;
+    } catch (err: any) {
+      // If Paystack init failed, mark transaction failed and surface error
+      try {
+        tx.status = TransactionStatus.FAILED;
+        tx.metadata = {
+          ...(tx.metadata || {}),
+          paystack_error: err?.response?.data ?? err?.message ?? String(err),
         };
-
-        // 5) Call Paystack initialize endpoint
-        try {
-            console.log(PAYSTACK_SECRET)
-            const res = await axios.post(`${PAYSTACK_BASE}/transaction/initialize`, payload, {
-            headers: {
-                Authorization: `Bearer sk_test_9c1a6166689818e08f0347c90cd1844447307b9c`,
-                'Content-Type': 'application/json',
-            },
-            timeout: 20000,
-            });
-
-            // paystack returns { status: true, message: "...", data: { authorization_url, reference, ... } }
-            const paystackData = res.data?.data ?? null;
-
-            // 6) Save Paystack response into the transaction metadata (so verify/webhook can use it)
-            tx.metadata = {
-            ...(tx.metadata || {}),
-            paystack_init: paystackData,
-            };
-            await tx.save();
-
-            // 7) Attach the init payload to the returned wallet object at runtime (no schema change).
-            //    This lets your controller access authorization_url & reference from the returned wallet.
-            (wallet as any).last_paystack_init = paystackData; // runtime-only property
-
-            // 8) return wallet (with runtime last_paystack_init)
-            return wallet;
-        } catch (err: any) {
-            // If Paystack init failed, mark transaction failed and surface error
-            try {
-            tx.status = TransactionStatus.FAILED;
-            tx.metadata = {
-                ...(tx.metadata || {}),
-                paystack_error: (err?.response?.data ?? err?.message ?? String(err)),
-            };
-            await tx.save();
-            } catch (saveErr) {
-            // swallow save error but log in real app
-            console.error('Failed to save failed tx metadata:', saveErr);
-            }
-
-            // throw a clear error so controller can respond correctly
-            throw new Error(`Paystack initialize failed: ${err?.response?.data?.message ?? err?.message ?? String(err)}`);
-        }
-    }
-
-
-    async handlePaystackEvent(event: any) {
-        console.log(`Paystack event: ${event.event}`);
-
-        if (event.event === 'charge.success') {
-        const { reference, amount, customer } = event.data;
-
-        // find existing pending transaction by reference
-        const tx = await this.txModel.findOne({ reference });
-
-        if (!tx) {
-            console.error(`Transaction not found for reference: ${reference}`);
-            return;
-        }
-
-        if (tx.status === TransactionStatus.SUCCESS) {
-            console.log(`Transaction ${reference} already processed`);
-            return;
-        }
-
-        // update transaction status
-        tx.status = TransactionStatus.SUCCESS;
         await tx.save();
+      } catch (saveErr) {
+        // swallow save error but log in real app
+        console.error('Failed to save failed tx metadata:', saveErr);
+      }
 
-        // update wallet balance
-        await this.walletModel.findByIdAndUpdate(tx.wallet, {
-            $inc: { balance_kobo: amount }, // Paystack amount is in kobo, adjust if necessary
-        });
-
-        console.log(`Wallet credited for transaction: ${reference}`);
-        }
-
-        if (event.event === 'charge.failed') {
-        const { reference } = event.data;
-        await this.txModel.updateOne(
-            { reference },
-            { status: TransactionStatus.FAILED },
-        );
-        }
+      // throw a clear error so controller can respond correctly
+      throw new Error(
+        `Paystack initialize failed: ${err?.response?.data?.message ?? err?.message ?? String(err)}`,
+      );
+    }
   }
 
+  async handlePaystackEvent(event: any) {
+    console.log(`Paystack event: ${event.event}`);
+
+    if (event.event === 'charge.success') {
+      const { reference, amount, customer } = event.data;
+
+      // find existing pending transaction by reference
+      const tx = await this.txModel.findOne({ reference });
+
+      if (!tx) {
+        console.error(`Transaction not found for reference: ${reference}`);
+        return;
+      }
+
+      if (tx.status === TransactionStatus.SUCCESS) {
+        console.log(`Transaction ${reference} already processed`);
+        return;
+      }
+
+      // update transaction status
+      tx.status = TransactionStatus.SUCCESS;
+      await tx.save();
+
+      // update wallet balance
+      await this.walletModel.findByIdAndUpdate(tx.wallet, {
+        $inc: { balance_kobo: amount }, // Paystack amount is in kobo, adjust if necessary
+      });
+
+      console.log(`Wallet credited for transaction: ${reference}`);
+    }
+
+    if (event.event === 'charge.failed') {
+      const { reference } = event.data;
+      await this.txModel.updateOne(
+        { reference },
+        { status: TransactionStatus.FAILED },
+      );
+    }
+  }
 
   /**
    * Convenience wrappers using reference for idempotency.
    */
-  async creditByReference(userId: string | Types.ObjectId, amount_kobo: number, reference: string, metadata?: Record<string, any>): Promise<TransactionWithId> {
-    const dto: CreateTransactionDto = { type: TransactionType.CREDIT, amount_kobo, reference, metadata };
+  async creditByReference(
+    userId: string | Types.ObjectId,
+    amount_kobo: number,
+    reference: string,
+    metadata?: Record<string, any>,
+  ): Promise<TransactionWithId> {
+    const dto: CreateTransactionDto = {
+      type: TransactionType.CREDIT,
+      amount_kobo,
+      reference,
+      metadata,
+    };
     return this.createTransaction(userId, dto);
   }
 
-  async debitByReference(userId: string | Types.ObjectId, amount_kobo: number, reference: string,metadata?: Record<string, any>): Promise<TransactionWithId> {
-    const dto: CreateTransactionDto = { type: TransactionType.DEBIT, amount_kobo, reference, metadata };
+  async debitByReference(
+    userId: string | Types.ObjectId,
+    amount_kobo: number,
+    reference: string,
+    metadata?: Record<string, any>,
+  ): Promise<TransactionWithId> {
+    const dto: CreateTransactionDto = {
+      type: TransactionType.DEBIT,
+      amount_kobo,
+      reference,
+      metadata,
+    };
     return this.createTransaction(userId, dto);
+  }
+
+  async recordDebt(
+    userId: string | Types.ObjectId,
+    amount_kobo: number,
+  ): Promise<void> {
+    const wallet = await this.getOrCreateWallet(userId);
+    await this.walletModel
+      .findByIdAndUpdate(wallet._id, { $inc: { debt_kobo: amount_kobo } })
+      .exec();
   }
 }

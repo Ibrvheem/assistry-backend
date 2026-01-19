@@ -60,4 +60,6 @@ export class CreateUserDto {
   @IsDate()
   @IsOptional()
   updated_at: Date;
+  @IsString()
+  username: string;
 }

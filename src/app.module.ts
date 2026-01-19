@@ -15,6 +15,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { OtpModule } from './otp/otp.module';
 import { ChatModule } from './chat/chat.module';
 import { UploadModule } from './upload/upload.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -36,7 +37,9 @@ import { UploadModule } from './upload/upload.module';
     TasksModule,
     OtpModule,
     ChatModule,
+    ChatModule,
     UploadModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

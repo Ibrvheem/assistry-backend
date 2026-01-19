@@ -6,7 +6,13 @@ export type WalletDocument = Wallet & Document;
 
 @Schema({ timestamps: true })
 export class Wallet {
-  @Prop({ type: Types.ObjectId, required: true, ref: 'User', index: true, unique: true })
+  @Prop({
+    type: Types.ObjectId,
+    required: true,
+    ref: 'User',
+    index: true,
+    unique: true,
+  })
   user: Types.ObjectId;
 
   @Prop({ type: Number, default: 0 })
@@ -14,6 +20,9 @@ export class Wallet {
 
   @Prop({ default: 'NGN' })
   currency: string;
+
+  @Prop({ type: Number, default: 0 })
+  debt_kobo: number;
 
   @Prop({ default: false })
   disabled: boolean;

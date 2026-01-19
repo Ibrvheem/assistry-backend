@@ -33,4 +33,7 @@ export class SignUpDTO {
 
   @IsString()
   state: string;
+
+  @IsString()
+  username: string;
 }

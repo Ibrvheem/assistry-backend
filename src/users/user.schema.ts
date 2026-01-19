@@ -19,6 +19,13 @@ export const UserSchema = new mongoose.Schema({
   created_at: { type: Date },
   updated_at: { type: Date },
   isAuthVerified: { type: Boolean },
+  username: { type: String, unique: true },
+  push_token: { type: String },
+  dob: { type: Date },
+  id_card_url: { type: String },
+  preferred_task_categories: { type: [String], default: [] },
+  debt: { type: Number, default: 0 },
+  is_online: { type: Boolean, default: true },
 });
 
 export interface User {
@@ -41,4 +48,11 @@ export interface User {
   created_at: string;
   updated_at: string;
   isAuthVerified: boolean;
+  username?: string;
+  push_token?: string;
+  dob?: Date;
+  id_card_url?: string;
+  preferred_task_categories?: string[];
+  debt?: number;
+  is_online?: boolean;
 }

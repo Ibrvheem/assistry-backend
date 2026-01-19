@@ -7,10 +7,15 @@ export enum TaskStatus {
   DECLINED = 'declined',
   PENDING = 'pending',
   ONGOING = 'ongoing',
-  FINISHED='finished',
+  FINISHED = 'finished',
   COMPLETED = 'completed',
-  EXPIRED = "expired",
+  EXPIRED = 'expired',
   CANCELED = 'canceled',
+}
+
+export enum PaymentMethod {
+  IN_APP = 'IN_APP',
+  CASH = 'CASH',
 }
 const AssetSchema = new Schema({
   assetStorageKey: { type: String, required: true },
@@ -29,10 +34,16 @@ export const TaskSchema = new mongoose.Schema({
   task: { type: String, required: true },
   description: { type: String },
   incentive: { type: Number, required: true },
+  payment_method: {
+    type: String,
+    enum: Object.values(PaymentMethod),
+    required: true,
+  },
+  timeline: { type: String },
   assets: { type: [AssetSchema] },
   location: { type: String, required: true },
   expires: { type: Number, require: true },
-  views:{ type: Number, default: 0 },
+  views: { type: Number, default: 0 },
   status: {
     type: String,
     enum: Object.values(TaskStatus),
@@ -61,10 +72,12 @@ export interface Task {
   task: string;
   description: string;
   incentive: number;
+  payment_method: PaymentMethod;
+  timeline: string;
   visual_context: string;
   location: string;
   expires: string;
-  views:string,
+  views: string;
   user_id: string;
   created_at: string;
   updated_at: string;
