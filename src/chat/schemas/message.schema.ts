@@ -53,7 +53,6 @@
 //   createdAt?: Date;
 // }
 
-
 // chat/schemas/message.schema.ts
 import mongoose, { Document } from 'mongoose';
 
@@ -61,7 +60,8 @@ export enum MessageType {
   TEXT = 'text',
   IMAGE = 'image',
   VOICE = 'voice',
-  FILE='file',
+  AUDIO = 'audio',
+  FILE = 'file',
 
   // extendable (video, file, etc.)
 }
@@ -69,7 +69,7 @@ export enum MessageType {
 export enum MessageStatus {
   SENT = 'sent',
   DELIVERED = 'delivered',
-  SEEN= 'seen',
+  SEEN = 'seen',
   // extendable (video, file, etc.)
 }
 
@@ -93,7 +93,7 @@ export const MessageSchema = new mongoose.Schema(
       default: MessageType.TEXT,
     },
     text: { type: String },
-    status: { type: String,required:false },
+    status: { type: String, required: false },
 
     // 🔥 New: replyTo — reference to another message
     replyTo: {
@@ -118,7 +118,7 @@ export const MessageSchema = new mongoose.Schema(
     },
 
     createdAt: { type: Date, default: Date.now, index: true },
-    seenAt:{ type: Date, required:false },
+    seenAt: { type: Date, required: false },
   },
   { timestamps: true },
 );

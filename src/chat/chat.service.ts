@@ -319,13 +319,24 @@ export class ChatService {
       }
     }
 
+    // Map attachments from string[] to expected object format
+    const attachments = (dto.attachments || []).map((url) => ({
+      url,
+      kind:
+        dto.type === 'image'
+          ? 'image'
+          : dto.type === 'voice' || dto.type === 'audio'
+            ? 'audio'
+            : 'file',
+    }));
+
     // Create the message
     const message = await this.messageModel.create({
       roomId: dto.roomId,
       sender: senderId,
       type: dto.type,
       text: dto.text,
-      attachments: dto.attachments || [],
+      attachments: attachments,
       readBy: [senderId],
       replyTo: dto.replyTo ?? null,
     });
@@ -482,7 +493,19 @@ export class ChatService {
 
     await room.save();
 
+    await room.save();
     return { success: true };
+  }
+
+  /**
+   * Get the number of conversations that have unread messages for this user.
+   */
+  async getUnreadConversationCount(userId: string): Promise<number> {
+    const count = await this.roomModel.countDocuments({
+      participants: userId,
+      [`unreadCounts.${userId}`]: { $gt: 0 },
+    });
+    return count;
   }
 
   /**

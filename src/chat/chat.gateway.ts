@@ -139,6 +139,7 @@ export class ChatGateway
     client.join(roomId);
     await this.chatService.markAsRead(roomId, user.userId);
     client.emit('joinedRoom', { roomId });
+    await this.pushUnreadCount(user.userId);
   }
 
   /** Leave a specific chat room */
@@ -173,6 +174,7 @@ export class ChatGateway
       createdAt: message.createdAt,
       replyTo: message.replyTo,
       status: 'sent',
+      tempId: payload.tempId, // Include tempId for clients to resolve optimistic UI
     };
 
     // client.to(payload.roomId).emit('message', out); // Removed to prevent duplicates (Redis Pub/Sub handles it)
@@ -182,7 +184,7 @@ export class ChatGateway
     await this.redisPub.publish(this.CHANNEL, JSON.stringify(out));
 
     // Return Acknowledgment
-    return {
+    const ack = {
       status: 'ok',
       data: {
         id: message._id.toString(),
@@ -190,6 +192,36 @@ export class ChatGateway
         serverCreatedAt: message.createdAt,
       },
     };
+
+    // Push new unread counts to other participants
+    // We need to know who the other participants are.
+    // The chatService.createMessage doesn't return participants by default but we can fetch or optimize.
+    // Ideally createMessage should return the room participants or we fetch the room.
+    // precise fix: fetch room participants to be safe.
+
+    // For now, let's optimize by trusting the room structure if available or fetching.
+    // We'll trust the user to fetch fresh counts or we emit to everyone in the room?
+    // No, unread count is per user (global).
+
+    // We can just rely on the client refreshing OR we do the proper thing:
+    const room = await this.chatService.findOrCreateRoom(user.userId, {
+      taskId: message.roomId,
+    } as any);
+    // Note: findOrCreateRoom might be heavy just to get participants.
+    // Better to have createMessage return participants or just fetch a lightweight list.
+
+    // Quick fix: Iterate all participants of the room
+    if (room && room.participants) {
+      for (const p of room.participants) {
+        // p is ObjectId or string, ensure validation
+        const pid = p.toString();
+        if (pid !== user.userId) {
+          await this.pushUnreadCount(pid);
+        }
+      }
+    }
+
+    return ack;
   }
 
   /** Broadcast typing or recording indicators */
@@ -202,7 +234,7 @@ export class ChatGateway
     const user = client.data.user;
     const data = {
       roomId: payload.roomId,
-      userId: user.first_name ?? 'user',
+      userId: user.userId ?? user.sub,
       first_name: user.first_name,
       isTyping: payload.isTyping,
       isRecording: payload.isRecording ?? false,
@@ -264,10 +296,29 @@ export class ChatGateway
     return { success: true, status: update };
   }
 
-  /** Get list of online users */
   @SubscribeMessage('getOnlineUsers')
   async handleGetOnlineUsers(@ConnectedSocket() client: Socket) {
     const users = await this.redisPub.smembers(this.ONLINE_USERS_KEY);
     client.emit('onlineUsers', users);
+  }
+
+  /** Get unread conversation count */
+  @SubscribeMessage('getUnreadCount')
+  async handleGetUnreadCount(@ConnectedSocket() client: Socket) {
+    const user = client.data.user;
+    const count = await this.chatService.getUnreadConversationCount(
+      user.userId,
+    );
+    client.emit('unreadCountUpdate', { count });
+  }
+
+  /**
+   * Helper to broadcast unread count update to a specific user
+   * Since we don't track socketIds per user easily without an adapter,
+   * we can emit to a room named `user_{userId}` which we joined on connection.
+   */
+  private async pushUnreadCount(userId: string) {
+    const count = await this.chatService.getUnreadConversationCount(userId);
+    this.server.to(`user_${userId}`).emit('unreadCountUpdate', { count });
   }
 }
