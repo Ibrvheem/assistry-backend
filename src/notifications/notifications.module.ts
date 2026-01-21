@@ -3,7 +3,6 @@ import { NotificationsService } from './notifications.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UserSchema } from 'src/users/user.schema';
 import { NotificationsController } from './notifications.controller';
-
 @Global()
 @Module({
   imports: [MongooseModule.forFeature([{ name: 'User', schema: UserSchema }])],

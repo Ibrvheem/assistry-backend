@@ -17,10 +17,7 @@ import { REGSTATUS } from 'src/users/types';
 @Controller('notifications')
 @Public()
 export class NotificationsController {
-  constructor(
-    private readonly notificationsService: NotificationsService,
-    private readonly userService: UsersService,
-  ) {}
+  constructor(private readonly notificationsService: NotificationsService) {}
 
   @Post('/test')
   async createNotification(@Body() body: { userId: string }) {
