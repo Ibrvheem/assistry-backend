@@ -320,15 +320,20 @@ export class ChatService {
     }
 
     // Map attachments from string[] to expected object format
-    const attachments = (dto.attachments || []).map((url) => ({
-      url,
-      kind:
-        dto.type === 'image'
-          ? 'image'
-          : dto.type === 'voice' || dto.type === 'audio'
-            ? 'audio'
-            : 'file',
-    }));
+    const attachments = (dto.attachments || []).map((att: any) => {
+      if (typeof att === 'string') {
+        return {
+          url: att,
+          kind:
+            dto.type === 'image'
+              ? 'image'
+              : dto.type === 'voice' || dto.type === 'audio'
+                ? 'audio'
+                : 'file',
+        };
+      }
+      return att;
+    });
 
     // Create the message
     const message = await this.messageModel.create({
