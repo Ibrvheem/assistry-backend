@@ -19,8 +19,6 @@ export class NotificationsService {
   ) {
     try {
       const user = await this.userModel.findById(userId);
-      const allusers = await this.userModel.find();
-      console.log('allusers', allusers);
       if (!user || !user.push_token) {
         this.logger.warn(`User ${userId} has no push token.`);
         return;

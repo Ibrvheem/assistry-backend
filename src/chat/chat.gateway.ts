@@ -17,6 +17,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @WebSocketGateway({
   namespace: 'chat',
@@ -44,6 +45,7 @@ export class ChatGateway
     private readonly chatService: ChatService,
     private readonly config: ConfigService,
     private readonly jwtService: JwtService,
+    private readonly notificationsService: NotificationsService,
     @InjectRedis() private readonly redisClient: Redis,
   ) {
     this.redisPub = this.redisClient;
@@ -161,7 +163,8 @@ export class ChatGateway
   ) {
     const user = client.data.user;
     console.log('Message comng in ', payload);
-    const message = await this.chatService.createMessage(user.userId, payload);
+    const { message, participants, roomName } =
+      await this.chatService.createMessage(user.userId, payload);
     console.log('Message Processed', message);
 
     const out = {
@@ -174,54 +177,55 @@ export class ChatGateway
       createdAt: message.createdAt,
       replyTo: message.replyTo,
       status: 'sent',
-      tempId: payload.tempId, // Include tempId for clients to resolve optimistic UI
+      tempId: payload.tempId,
     };
-
-    // client.to(payload.roomId).emit('message', out); // Removed to prevent duplicates (Redis Pub/Sub handles it)
-
-    // client.emit('message', out); // Don't echo back to sender if using optimistic UI + Ack
 
     await this.redisPub.publish(this.CHANNEL, JSON.stringify(out));
 
-    // Return Acknowledgment
-    const ack = {
-      status: 'ok',
-      data: {
-        id: message._id.toString(),
-        tempId: payload.tempId, // Ensure frontend sends a tempId
-        serverCreatedAt: message.createdAt,
-      },
-    };
+    // Push new unread counts and notifications
+    const roomSockets = await this.server.in(payload.roomId).fetchSockets();
+    const connectedUserIds = new Set(
+      roomSockets.map((s) => s.data.user?.userId || s.data.user?.sub),
+    );
 
-    // Push new unread counts to other participants
-    // We need to know who the other participants are.
-    // The chatService.createMessage doesn't return participants by default but we can fetch or optimize.
-    // Ideally createMessage should return the room participants or we fetch the room.
-    // precise fix: fetch room participants to be safe.
+    for (const pid of participants) {
+      if (pid === user.userId) continue;
 
-    // For now, let's optimize by trusting the room structure if available or fetching.
-    // We'll trust the user to fetch fresh counts or we emit to everyone in the room?
-    // No, unread count is per user (global).
+      // 1. Push unread count update
+      await this.pushUnreadCount(pid);
 
-    // We can just rely on the client refreshing OR we do the proper thing:
-    const room = await this.chatService.findOrCreateRoom(user.userId, {
-      taskId: message.roomId,
-    } as any);
-    // Note: findOrCreateRoom might be heavy just to get participants.
-    // Better to have createMessage return participants or just fetch a lightweight list.
-
-    // Quick fix: Iterate all participants of the room
-    if (room && room.participants) {
-      for (const p of room.participants) {
-        // p is ObjectId or string, ensure validation
-        const pid = p.toString();
-        if (pid !== user.userId) {
-          await this.pushUnreadCount(pid);
-        }
+      // 2. Send push notification if NOT connected to room
+      if (!connectedUserIds.has(pid)) {
+        const output =
+          message.type === 'text'
+            ? message.text
+            : message.type === 'image'
+              ? `📸`
+              : message.type === 'audio'
+                ? `🎤`
+                : message.type === 'file'
+                  ? `📁`
+                  : `Sent a ${message.type}`;
+        await this.notificationsService.sendPushNotification(
+          pid,
+          `${roomName.slice(0, 10)} -- ${user.first_name}`,
+          output,
+          {
+            roomId: message.roomId,
+            type: 'CHAT_MESSAGE',
+          },
+        );
       }
     }
 
-    return ack;
+    return {
+      status: 'ok',
+      data: {
+        id: message._id.toString(),
+        tempId: payload.tempId,
+        serverCreatedAt: message.createdAt,
+      },
+    };
   }
 
   /** Broadcast typing or recording indicators */

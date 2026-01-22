@@ -13,6 +13,7 @@ import {
   TransactionStatus,
 } from './schemas/transaction.schema';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 /**
  * Local aliases that require a concrete _id on the document.
@@ -38,6 +39,7 @@ export class WalletService {
     @InjectModel(Wallet.name) private walletModel: Model<Wallet & Document>,
     @InjectModel(Transaction.name)
     private txModel: Model<Transaction & Document>,
+    private notificationsService: NotificationsService,
   ) {}
 
   /** Helper to normalize userId to ObjectId without using global String() */
@@ -345,11 +347,17 @@ export class WalletService {
       await tx.save();
 
       // update wallet balance
-      await this.walletModel.findByIdAndUpdate(tx.wallet, {
+      const wallet = await this.walletModel.findByIdAndUpdate(tx.wallet, {
         $inc: { balance_kobo: amount }, // Paystack amount is in kobo, adjust if necessary
       });
 
       console.log(`Wallet credited for transaction: ${reference}`);
+      await this.notificationsService.sendPushNotification(
+        wallet.user._id.toString(),
+        'Deposit Received',
+        `You deposited ₦${amount} into your wallet!`,
+        { txId: tx._id.toString(), type: 'PAYMENT_RECEIVED' },
+      );
     }
 
     if (event.event === 'charge.failed') {

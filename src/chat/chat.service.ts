@@ -299,7 +299,11 @@ export class ChatService {
   async createMessage(
     senderId: string,
     dto: SendMessageDto,
-  ): Promise<Lean<Message>> {
+  ): Promise<{
+    message: Lean<Message>;
+    participants: string[];
+    roomName: string;
+  }> {
     const room = await this.roomModel.findById(dto.roomId).lean();
     if (!room) throw new NotFoundException('Room not found');
 
@@ -364,7 +368,13 @@ export class ChatService {
       { new: false },
     );
 
-    return message.toObject() as Lean<Message>;
+    const participants = room.participants.map((p) => p.toString());
+
+    return {
+      message: message.toObject() as Lean<Message>,
+      participants,
+      roomName: room.name,
+    };
   }
 
   /**
