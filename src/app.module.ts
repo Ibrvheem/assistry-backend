@@ -37,7 +37,6 @@ import { NotificationsModule } from './notifications/notifications.module';
     TasksModule,
     OtpModule,
     ChatModule,
-    ChatModule,
     UploadModule,
     NotificationsModule,
   ],

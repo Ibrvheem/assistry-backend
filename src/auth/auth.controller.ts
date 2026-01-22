@@ -47,7 +47,7 @@ export class AuthController {
       payload.reg_no,
       payload.password,
     );
-    return this.authService.login(user);
+    return this.authService.login(user, payload.push_token);
   }
 
   @Post('/send-otp')

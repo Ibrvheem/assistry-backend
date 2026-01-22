@@ -62,4 +62,8 @@ export class CreateUserDto {
   updated_at: Date;
   @IsString()
   username: string;
+
+  @IsString()
+  @IsOptional()
+  push_token: string;
 }

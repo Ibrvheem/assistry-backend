@@ -20,7 +20,17 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Post('/test')
-  async createNotification(@Body() body: { userId: string }) {
+  async createNotification(
+    @Body() body: { userId?: string; pushToken?: string },
+  ) {
+    if (body.pushToken) {
+      // Direct token test
+      return this.notificationsService.sendPushNotificationByToken(
+        body.pushToken,
+        'Test Notification',
+        'This is a direct test notification!',
+      );
+    }
     return this.notificationsService.sendPushNotification(
       body.userId,
       'Test',

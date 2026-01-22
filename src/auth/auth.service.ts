@@ -202,13 +202,15 @@ export class AuthService {
     }
     return user;
   }
-  async login(user: User) {
+  async login(user: User, push_token?: string) {
     const payload = {
       reg_no: user.reg_no,
       userId: user.id,
       first_name: user.first_name,
     };
-
+    if (push_token) {
+      await this.userService.updateUser({ push_token }, user.id);
+    }
     return {
       access_token: this.jwtService.sign(payload),
       user: {

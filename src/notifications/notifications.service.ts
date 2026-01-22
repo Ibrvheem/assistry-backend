@@ -3,7 +3,7 @@ import { Expo, ExpoPushMessage } from 'expo-server-sdk';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/users/user.schema';
-
+import * as mongoose from 'mongoose';
 @Injectable()
 export class NotificationsService {
   private expo = new Expo();
@@ -19,6 +19,8 @@ export class NotificationsService {
   ) {
     try {
       const user = await this.userModel.findById(userId);
+      const allusers = await this.userModel.find();
+      console.log('allusers', allusers);
       if (!user || !user.push_token) {
         this.logger.warn(`User ${userId} has no push token.`);
         return;
@@ -56,6 +58,43 @@ export class NotificationsService {
       return tickets;
     } catch (error) {
       this.logger.error(`Failed to send push notification to ${userId}`, error);
+    }
+  }
+
+  async sendPushNotificationByToken(
+    token: string,
+    title: string,
+    body: string,
+    data: any = {},
+  ) {
+    try {
+      if (!Expo.isExpoPushToken(token)) {
+        this.logger.error(`Push token ${token} is not a valid Expo push token`);
+        return;
+      }
+
+      const messages: ExpoPushMessage[] = [
+        {
+          to: token,
+          sound: 'default',
+          title,
+          body,
+          data,
+        },
+      ];
+
+      const chunks = this.expo.chunkPushNotifications(messages);
+      const tickets = [];
+
+      for (const chunk of chunks) {
+        const ticketChunk = await this.expo.sendPushNotificationsAsync(chunk);
+        tickets.push(...ticketChunk);
+      }
+
+      this.logger.log(`Push notification sent to token: ${token}`);
+      return tickets;
+    } catch (error) {
+      this.logger.error(`Failed to send push notification to token`, error);
     }
   }
 }
