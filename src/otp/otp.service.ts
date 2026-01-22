@@ -142,12 +142,18 @@ export class OtpService {
             user: this.configService.get('SMTP_USER'),
             pass: this.configService.get('SMTP_PASS'),
           },
+          tls: {
+            rejectUnauthorized: false,
+          },
         });
 
         console.log('Code', code);
 
-        const from =
-          this.configService.get('EMAIL_FROM') || 'no-reply@example.com';
+        // const from =
+        //   this.configService.get('EMAIL_FROM') || 'no-reply@example.com';
+
+        const from = '"Assistry" <p2p-noreply@innojax.com>';
+
         const sent = await transporter.sendMail({
           from,
           to: email,
